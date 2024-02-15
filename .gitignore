@@ -1,0 +1,14 @@
+# Ignore the images
+images/
+
+# Ignore the data, these should have been stored in the cloud platform
+data_large/
+
+# Ignore the testing files
+temp_files/
+output_test/
+
+# Ignore the cache
+__pycache__/
+.pytest_cache/
+tempCodeRunnerFile.py
