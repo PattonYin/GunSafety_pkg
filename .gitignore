@@ -12,3 +12,4 @@ output_test/
 __pycache__/
 .pytest_cache/
 tempCodeRunnerFile.py
+.Rhistory
