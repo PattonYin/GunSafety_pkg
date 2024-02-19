@@ -18,6 +18,7 @@ class Fetcher:
             "assigneeState": self._subset_with_list,
             "cpcInventiveFlattened": self._subset_with_list
         }
+        self.edge_list = pd.read_csv("data/edge_list.csv")
     
     def query_text(self, search_requirements):
         """With searching requirements given, return the abstract of the patent.
@@ -51,6 +52,28 @@ class Fetcher:
         print(index_list)
         query_img(index_list, output_folder)
         
+    def get_citations(self, patent_id):
+        """With patent id given, return the list of cited patent ids.
+        
+        Args:
+            patent_id (str) : patent id
+            
+        Returns:
+            list : list of cited patent ids
+        """
+        return self.edge_list[self.edge_list['child'] == patent_id]['parent'].to_list()
+    
+    def get_cited_by(self, patent_id):
+        """With patent id given, return the list of patents that cited the patent.
+        
+        Args:
+            patent_id (str) : patent id
+            
+        Returns:
+            list : list of patents that cited the patent
+        """
+        return self.edge_list[self.edge_list['parent'] == patent_id]['child'].to_list()
+
     def subset_patents(self, column_name, requirements):
         """Subset the patents based on the column name and range.
         
@@ -108,16 +131,19 @@ class Fetcher:
 
 if __name__ == "__main__":
     fetcher = Fetcher()
-    # search_requirements = {
-    #     "ids": ["US-20170067712-A9"],
-    #     "method": "local",
-    #     "content": "descriptions"
-    # }
-    # print(fetcher.query_text(search_requirements))
+    search_requirements = {
+        "ids": ["US-20170067712-A9"],
+        "method": "local",
+        "content": "descriptions"
+    }
+    print(fetcher.query_text(search_requirements))
     
-    # ids = ["US-0441389-A", "US-0442014-A"]
-    # output_folder = "output_test"
-    # fetcher.query_img(ids, output_folder)
+    ids = ["US-0441389-A", "US-0442014-A"]
+    output_folder = "output_test"
+    fetcher.query_img(ids, output_folder)
+    
+    print(fetcher.get_citations("US-10921097-B1"))
+    print(fetcher.get_cited_by("US-5992291-A"))
     
     requirements = ("2010-01-01", "2011-01-01")
     print(len(fetcher.subset_patents("datePublished", requirements)))
@@ -127,4 +153,3 @@ if __name__ == "__main__":
     
     requirements = ["CT", "MA"]
     print(len(fetcher.subset_patents("inventorState", requirements)))
-    
