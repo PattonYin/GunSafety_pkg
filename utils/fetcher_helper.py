@@ -17,8 +17,9 @@ def query_df(df_name, ids, path=None):
     df = pd.read_csv(path)
     
     # subset the dataframe with the ids
-    df = df[df['guid'].isin(ids)]
-    
+    if ids:
+        df = df[df['guid'].isin(ids)]
+        
     return df
 
 def query_img(index_list, output_folder, path=None):
