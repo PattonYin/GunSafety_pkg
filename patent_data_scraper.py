@@ -11,6 +11,16 @@ class Scraper:
         self.pattern = r"^[A-Za-z]\d{2,}[A-Za-z]\d+\/\d{2,}$"
         
     def scrape_all(self, file_path, export_path, id_column, start_idx=0, end_idx=0):
+        """
+        Scrapes the cpc, date, inventor, and title of the patents from the google patent website.
+
+        Args:
+            file_path (str): the ids of patents to be scraped csv file path
+            export_path (_type_): output path
+            id_column (_type_): the column name of the ids
+            start_idx (int, optional): index to begin with in the csv. Defaults to 0.
+            end_idx (int, optional): index to end with in the csv. Defaults to 0.
+        """
         
         self.df_todo = pd.read_csv(file_path, low_memory=False)
         
@@ -34,7 +44,13 @@ class Scraper:
                 self.df_todo['date'][i] = self.get_date(r)
                 self.df_todo['inventor'][i] = self.get_inventor(r)
                 self.df_todo['title'][i] = self.get_title(r)
-                                
+            else:
+                self.df_todo['cpc'][i] = self.df_todo['cpc'][i-1]
+                self.df_todo['date'][i] = self.df_todo['date'][i-1]
+                self.df_todo['inventor'][i] = self.df_todo['inventor'][i-1]
+                self.df_todo['title'][i] = self.df_todo['title'][i-1]
+        
+        self.df_todo.to_csv(export_path, index=False)
                 
     def get_cpc(self, r):        
         classification_element = r.html.find('.style-scope.classification-tree')
