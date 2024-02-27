@@ -3,7 +3,8 @@ import os
 from PIL import Image
 
 def query_df(df_name, ids, path=None):
-    """Query the dataframe and return the dataframe.
+    """
+    Query the dataframe and return the dataframe.
     
     Args:
         df_name (str): the name of the dataframe
@@ -23,7 +24,8 @@ def query_df(df_name, ids, path=None):
     return df
 
 def query_img(index_list, output_folder, path=None):
-    """Query the image from the index list and save it to the output folder.
+    """
+    Query the image from the index list and save it to the output folder.
     
     Args:
         index_list (list): list of index

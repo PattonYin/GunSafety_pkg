@@ -21,7 +21,8 @@ class Fetcher:
         self.edge_list = pd.read_csv("data/edge_list.csv")
     
     def query_text(self, search_requirements):
-        """With searching requirements given, return the abstract of the patent.
+        """
+        With searching requirements given, return the abstract of the patent.
         
         Args:
             search_requirements (dict) : requirements for patent search
@@ -41,7 +42,8 @@ class Fetcher:
         return data
     
     def query_img(self, ids, output_folder):
-        """With searching requirements given, return the image of the patent.
+        """
+        With searching requirements given, return the image of the patent.
         
         Args:
             ids (list) : list of patent ids
@@ -53,7 +55,8 @@ class Fetcher:
         query_img(index_list, output_folder)
         
     def get_citations(self, patent_id):
-        """With patent id given, return the list of cited patent ids.
+        """
+        With patent id given, return the list of cited patent ids.
         
         Args:
             patent_id (str) : patent id
@@ -75,11 +78,13 @@ class Fetcher:
         return self.edge_list[self.edge_list['parent'] == patent_id]['child'].to_list()
 
     def subset_patents(self, column_name, requirements):
-        """Subset the patents based on the column name and range.
+        """
+        Subset the patents based on the column name and range.
+        The options are "datePublished", "inventorsName", "inventorCity", "inventorState", "assigneeName", "assigneeCity", "assigneeState", "cpcInventiveFlattened".
         
         Args:
-            column_name (str) : name of the column
-            range (tuple) : range of the column
+            column_name (str) : name of the column e.g. "datePublished" or "inventorsName"
+            range (tuple) or names (list): range of the column or list of the names e.g. ("2010-01-01", "2011-01-01") or ["Richard L.", "Marshfield"]
             
         Returns:
             df_subset (dataframe) : the subset of the patents
@@ -91,7 +96,8 @@ class Fetcher:
         return subset_method(column_name, requirements)
         
     def _subset_by_date(self, column_name, requirements, df=None):
-        """Subset the patents based on the datePublished column.
+        """
+        Subset the patents based on the datePublished column.
         
         Args:
             requirements (tuple of time) : range of the datePublished e.g. ("2010-01-01", "2011-01-01")
@@ -109,7 +115,8 @@ class Fetcher:
         return df_subset
     
     def _subset_with_list(self, column_name, requirements, df=None):
-        """Subset the patents based on the column name and list.
+        """
+        Subset the patents based on the column name and list.
         
         Args:
             column_name (str) : name of the column e.g. "inventorsName" or "inventorState"
