@@ -30,7 +30,7 @@ def query_img(index_list, output_folder, path=None):
         output_folder (str): the folder to save the images
     """
     # Fetches local images at this moment
-    if path is None: path = "images/"
+    if path is None: path = "data_large/images/"
     
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)

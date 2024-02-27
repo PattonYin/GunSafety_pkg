@@ -1,6 +1,3 @@
-# Ignore the images
-images/
-
 # Ignore the data, these should have been stored in the cloud platform
 data_large/
 
