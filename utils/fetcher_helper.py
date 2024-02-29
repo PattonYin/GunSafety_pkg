@@ -2,7 +2,7 @@ import pandas as pd
 import os
 from PIL import Image
 
-def query_df(df_name, ids, path=None):
+def query_df(df_name, path=None):
     """
     Query the dataframe and return the dataframe.
     
@@ -12,16 +12,9 @@ def query_df(df_name, ids, path=None):
     Returns:
         DataFrame: the dataframe
     """
-    # Fetches local dataframes at this moment
-    if path is None: path = f"data_large/{df_name}.csv"
-    
-    df = pd.read_csv(path)
-    
-    # subset the dataframe with the ids
-    if ids:
-        df = df[df['guid'].isin(ids)]
+
         
-    return df
+    return None
 
 def query_img(index_list, output_folder, path=None):
     """
