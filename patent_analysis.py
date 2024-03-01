@@ -2,7 +2,10 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
-from tqdm import tqdm
+from tqdm import tqdm, trange
+from datetime import datetime
+from pandas import NaT
+
 
 class first_appear:
     def __init__(self):
@@ -50,6 +53,14 @@ class first_appear:
                 
     # 1.2 - for each individual csv, join with parent_date.csv to get the date of the first appeared patent
     def join_date(self, data_path_01="temp/patent_date.csv", data_path_02="temp/cate_subsetted_data", output_path="temp/cate_date_data"):
+        """
+        Join the date of the first appeared patent to each category and save to individual csv files.
+
+        Args:
+            data_path_01 (str, optional): input data path. Defaults to "temp/patent_date.csv".
+            data_path_02 (str, optional): input data path. Defaults to "temp/cate_subsetted_data".
+            output_path (str, optional): output data path. Defaults to "temp/cate_date_data".
+        """
         df_patent_date = pd.read_csv(data_path_01, low_memory=False)
         os.makedirs(output_path, exist_ok=True)
         for file in tqdm(os.listdir(data_path_02), desc="joining date to patents"):
@@ -61,6 +72,13 @@ class first_appear:
                 
     # 1.3 - for each individual csv, find the earliest date and corresponding id
     def find_earliest_date(self, data_path_01="temp/cate_date_data", output_path="output/first_appeared.csv"):
+        """
+        Find the earliest date and corresponding id for each category and save to a csv file.
+
+        Args:
+            data_path_01 (str, optional): input data path . Defaults to "temp/cate_date_data".
+            output_path (str, optional): output data path. Defaults to "output/first_appeared.csv".
+        """
         list = []
         index = 0
         for file in tqdm(os.listdir(data_path_01), desc="finding the earliest date"):
@@ -81,6 +99,12 @@ class first_appear:
 
     # 1.4 - plot out how the patents distribute over time
     def plot_date(self, file_path="output/first_appeared.csv"):
+        """
+        Plot the distribution of the patents over time.
+
+        Args:
+            file_path (str, optional): input file path. Defaults to "output/first_appeared.csv".
+        """
         df = pd.read_csv(file_path, low_memory=False)
         df['1st_appeared_date'] = pd.to_datetime(df['1st_appeared_date'])
         # Extract the year from the date and Group by year and count the number of patents
@@ -95,8 +119,80 @@ class first_appear:
         plt.ylabel('Number of Patents')
         plt.show()        
     
+class compute_patent_citation_span:
+    def __init__(self):
+        self.df_basics = pd.read_csv("data/df_basics.csv")
+        self.edge_list = pd.read_csv("data/edge_list.csv")
+        
+    def date_span(self, output_path="output/citation_span.csv"):
+        """Compute the citation span for each patent.
+        
+        Args:
+            output_path (str, optional): output file path. Defaults to "output/citation_span.csv".
+        """
+        output = self.edge_list.copy()
+        for i in trange(len(self.edge_list)):
+            # get the date of both the citing and cited patents
+            id_1 = self.edge_list.iloc[i]['child']
+            id_2 = self.edge_list.iloc[i]['parent']
+            date_1_row = self.df_basics[self.df_basics['guid'] == id_1]['datePublished']
+            date_1 = date_1_row.values[0] if not date_1_row.empty else NaT
+            
+            date_2_row = self.df_basics[self.df_basics['guid'] == id_2]['datePublished']
+            date_2 = date_2_row.values[0] if not date_2_row.empty else NaT
+            
+            if pd.isna(date_1) or pd.isna(date_2):
+                continue
+            date_1 = datetime.strptime(date_1, '%Y-%m-%dT%H:%M:%SZ')
+            date_2 = datetime.strptime(date_2, '%Y-%m-%dT%H:%M:%SZ')
+            span = (date_1 - date_2).days
+            # add the citation span to the output dataframe
+            output.at[i, 'span'] = span
+        
+        output.to_csv(output_path, index=False)
+        
+    def average_span(self, data_path="output/citation_span.csv", output_path="output/avg_citation_span.csv"):
+        """Compute the average citation span.
+        
+        Args:
+            data_path (str, optional): input file path. Defaults to "output/citation_span.csv".
+            output_path (str, optional): output file path. Defaults to "output/avg_citation_span.csv".
+        """
+        df_span = pd.read_csv(data_path)
+        # initialize another dataframe to store the average span for each patent
+        df_avg_span = pd.DataFrame(columns=['child_guid', 'avg_span'])
+        
+        patent_group = df_span.groupby('child')
+        # compute the average span for each patent
+        avg_span = patent_group['span'].mean()
+        child_list = []
+        span_list = []
+        for child, span in avg_span.items():
+            child_list.append(child)
+            span_list.append(span)
+        df_avg_span['child_guid'] = child_list
+        df_avg_span['avg_span'] = span_list
+        df_avg_span.to_csv(output_path, index=False)
+    
+    def plot_distribution(self, data_path="output/avg_citation_span.csv"):
+        """Plot the distribution of the average citation span.
+        
+        Args:
+            data_path (str, optional): input file path. Defaults to "output/avg_citation_span.csv".
+        """
+        df_avg_span = pd.read_csv(data_path)
+        plt.figure(figsize=(10, 6))
+        plt.hist(df_avg_span['avg_span'], bins=50, color='pink', edgecolor='red')
+        plt.title('Distribution of Average Span')
+        plt.xlabel('Average Span')
+        plt.ylabel('Frequency')
+        plt.grid(axis='y', alpha=0.75)
 
-class Network_plot:
+        plt.show()
+
+    
+
+class network_plot:
     def __init__(self):
         self.edge_list = pd.read_csv("data/edge_list.csv")
     
@@ -136,10 +232,15 @@ class Network_plot:
     
         
 if __name__ == "__main__":
-    first_appear = first_appear()
-    first_appear.run()
+    # first_appear = first_appear()
+    # first_appear.run()
     
-    # network_plot = Network_plot()
+    compute_patent_citation_span = compute_patent_citation_span()
+    # compute_patent_citation_span.date_span()
+    # compute_patent_citation_span.average_span()
+    compute_patent_citation_span.plot_distribution()
+    
+    # network_plot = network_plot()
     # ids = ["US-10001331-B2"]
     # network_plot.plot_network(ids)
     
