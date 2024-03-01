@@ -4,6 +4,9 @@ data_large/
 # Ignore the testing files
 temp_files/
 output_test/
+output/
+temp/
+
 
 # Ignore the cache
 __pycache__/
