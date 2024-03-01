@@ -5,6 +5,9 @@ import os
 from tqdm import tqdm, trange
 from datetime import datetime
 from pandas import NaT
+import seaborn as sns
+import numpy as np
+
 
 
 class first_appear:
@@ -189,9 +192,24 @@ class compute_patent_citation_span:
         plt.grid(axis='y', alpha=0.75)
 
         plt.show()
-
     
-
+    def plot_distribution_2(self, data_path="output/avg_citation_span.csv", bins=50, kde=True, color='teal'):
+        """Plot the distribution of the citation span.
+        
+        Args:
+            data_path (str, optional): input file path. Defaults to "output/citation_span.csv".
+        """
+        df_avg_span = pd.read_csv(data_path)
+        df_avg_span.replace([np.inf, -np.inf], np.nan, inplace=True)
+        sns.set(style="whitegrid")
+        plt.figure(figsize=(12, 7))
+        sns.histplot(df_avg_span['avg_span'], bins=bins, kde=kde, color=color)
+        plt.title('Distribution of Average Span with KDE', fontsize=15)
+        plt.xlabel('Average Span', fontsize=12)
+        plt.ylabel('Frequency', fontsize=12)
+        
+        plt.show()
+    
 class network_plot:
     def __init__(self):
         self.edge_list = pd.read_csv("data/edge_list.csv")
@@ -238,7 +256,8 @@ if __name__ == "__main__":
     compute_patent_citation_span = compute_patent_citation_span()
     # compute_patent_citation_span.date_span()
     # compute_patent_citation_span.average_span()
-    compute_patent_citation_span.plot_distribution()
+    # compute_patent_citation_span.plot_distribution()
+    compute_patent_citation_span.plot_distribution_2()
     
     # network_plot = network_plot()
     # ids = ["US-10001331-B2"]
