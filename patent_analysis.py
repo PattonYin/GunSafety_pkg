@@ -232,7 +232,7 @@ class network_plot:
         Returns:
             _TBD_ : subset of the edge list
         """
-        return self.edge_list[self.edge_list['0'].isin(ids) | self.edge_list['1'].isin(ids)]
+        return self.edge_list[self.edge_list['child'].isin(ids) | self.edge_list['parent'].isin(ids)]
     
     def plot_network(self, ids, edge_color='brown', node_color='skyblue', node_alpha=0.9, node_size=100, width=1, linewidths=1, figsize=(10, 10)):
         """Plot the network of the patents with given ids.
@@ -246,7 +246,7 @@ class network_plot:
         # Add edges to the graph
         edge_list = self.subset_edge_list(ids)
         for index, row in edge_list.iterrows():
-            G.add_edge(row['0'], row['1'])
+            G.add_edge(row['child'], row['parent'])
         
         # Plot the graph
         plt.figure(figsize=figsize)
@@ -259,14 +259,14 @@ class network_plot:
     
         
 if __name__ == "__main__":
-    first_appear = first_appear()
+    # first_appear = first_appear()
     # first_appear.run()
     
-    compute_patent_citation_span = compute_patent_citation_span()
-    compute_patent_citation_span.date_span()
-    compute_patent_citation_span.average_span()
-    compute_patent_citation_span.plot_distribution()
-    compute_patent_citation_span.plot_distribution_2(save=True, output_path="output/avg_span_distribution.png")
+    # compute_patent_citation_span = compute_patent_citation_span()
+    # compute_patent_citation_span.date_span()
+    # compute_patent_citation_span.average_span()
+    # compute_patent_citation_span.plot_distribution()
+    # compute_patent_citation_span.plot_distribution_2(save=True, output_path="output/avg_span_distribution.png")
     
     network_plot = network_plot()
     ids = ["US-10001331-B2"]
