@@ -177,7 +177,7 @@ class compute_patent_citation_span:
         df_avg_span['avg_span'] = span_list
         df_avg_span.to_csv(output_path, index=False)
     
-    def plot_distribution(self, data_path="output/avg_citation_span.csv"):
+    def plot_distribution(self, data_path="output/avg_citation_span.csv", save=False, output_path="output/avg_span_distribution.png"):
         """Plot the distribution of the average citation span.
         
         Args:
@@ -191,9 +191,14 @@ class compute_patent_citation_span:
         plt.ylabel('Frequency')
         plt.grid(axis='y', alpha=0.75)
 
-        plt.show()
+        if save:
+            plt.savefig(output_path, dpi=300)
+            plt.close()
+        else:
+            plt.show()
     
-    def plot_distribution_2(self, data_path="output/avg_citation_span.csv", bins=50, kde=True, color='teal'):
+    
+    def plot_distribution_2(self, data_path="output/avg_citation_span.csv", bins=50, kde=True, color='teal', save=False, output_path="output/avg_span_distribution.png"):
         """Plot the distribution of the citation span.
         
         Args:
@@ -208,7 +213,11 @@ class compute_patent_citation_span:
         plt.xlabel('Average Span', fontsize=12)
         plt.ylabel('Frequency', fontsize=12)
         
-        plt.show()
+        if save:
+            plt.savefig(output_path, dpi=300)
+            plt.close()
+        else:
+            plt.show()
     
 class network_plot:
     def __init__(self):
@@ -250,16 +259,16 @@ class network_plot:
     
         
 if __name__ == "__main__":
-    # first_appear = first_appear()
+    first_appear = first_appear()
     # first_appear.run()
     
     compute_patent_citation_span = compute_patent_citation_span()
-    # compute_patent_citation_span.date_span()
-    # compute_patent_citation_span.average_span()
-    # compute_patent_citation_span.plot_distribution()
-    compute_patent_citation_span.plot_distribution_2()
+    compute_patent_citation_span.date_span()
+    compute_patent_citation_span.average_span()
+    compute_patent_citation_span.plot_distribution()
+    compute_patent_citation_span.plot_distribution_2(save=True, output_path="output/avg_span_distribution.png")
     
-    # network_plot = network_plot()
-    # ids = ["US-10001331-B2"]
-    # network_plot.plot_network(ids)
+    network_plot = network_plot()
+    ids = ["US-10001331-B2"]
+    network_plot.plot_network(ids)
     
