@@ -12,24 +12,24 @@ import numpy as np
 
 class first_appear:
     def __init__(self):
-        self.x = None
+        self.dataset = None
 
-    def run(self):
-        self.parent_date_process() # 1.0 - parent_date_process
-        first_appear.subset_category() # 1.1 - subset_category        
+    def run(self, patent_path="data/df_basics.csv", classification_path="data/patent_classification.csv"):
+        self.parent_date_process(patents_path=patent_path) # 1.0 - parent_date_process
+        first_appear.subset_category(classification_path=classification_path) # 1.1 - subset_category        
         first_appear.join_date() # 1.2 - join_date
         first_appear.find_earliest_date() # 1.3 - first_date
         first_appear.plot_date() # 1.4 - plot_date
 
     # 1.0 - parent_date_process
-    def parent_date_process(self, all_patents_path="data/df_basics.csv", output_path="temp/patent_date.csv"):
+    def parent_date_process(self, patents_path="data/df_basics.csv", output_path="temp/patent_date.csv"):
         """
         Process the parent date of all patents and save it to a csv file.
 
         Args:
             all_patents_path (str, optional): Path to the dataframe containing the patent ids and datePublished. Defaults to "data/df_basics.csv".
         """
-        df_all_patents = pd.read_csv(all_patents_path, low_memory=False)
+        df_all_patents = pd.read_csv(patents_path, low_memory=False)
         print("csv read")
         df_out = df_all_patents[['guid', 'datePublished']]
         print("subsetted")
@@ -87,6 +87,7 @@ class first_appear:
         for file in tqdm(os.listdir(data_path_01), desc="finding the earliest date"):
             df = pd.read_csv(f'{data_path_01}/{file}', low_memory=False)
             # modify the datePublished column, by taking only the first 10 characters (which looks like 2000-01-01), and then convert to datetime, then find the earliest date
+            df['datePublished'] = df['datePublished'].astype(str)
             df['datePublished'] = pd.to_datetime(df['datePublished'].str[:10])
             earliest_date = df['datePublished'].min()
             # find the corresponding id
@@ -123,9 +124,19 @@ class first_appear:
         plt.show()        
     
 class compute_patent_citation_span:
-    def __init__(self):
-        self.df_basics = pd.read_csv("data/df_basics.csv")
+    def __init__(self, patents_path="data/df_basics.csv", compute_edge_list=False):
+        self.df_basics = pd.read_csv(patents_path)
         self.edge_list = pd.read_csv("data/edge_list.csv")
+        if compute_edge_list:
+            self.compute_edge_list()
+            
+    def compute_edge_list(self):
+        """Compute the edge list of the patents.
+        """
+        raw_edge_list = self.edge_list
+        # Subset the edge_list only if the ids in 'child' column are in the df_basics guid column
+        edge_list = raw_edge_list[raw_edge_list['child'].isin(self.df_basics['guid'])]
+        self.edge_list = edge_list
         
     def date_span(self, output_path="output/citation_span.csv"):
         """Compute the citation span for each patent.
@@ -138,16 +149,17 @@ class compute_patent_citation_span:
             # get the date of both the citing and cited patents
             id_1 = self.edge_list.iloc[i]['child']
             id_2 = self.edge_list.iloc[i]['parent']
-            date_1_row = self.df_basics[self.df_basics['guid'] == id_1]['datePublished']
+            date_1_row = self.df_basics[self.df_basics['guid'] == id_1]['datePublished'].astype(str)
             date_1 = date_1_row.values[0] if not date_1_row.empty else NaT
             
-            date_2_row = self.df_basics[self.df_basics['guid'] == id_2]['datePublished']
+            date_2_row = self.df_basics[self.df_basics['guid'] == id_2]['datePublished'].astype(str)
             date_2 = date_2_row.values[0] if not date_2_row.empty else NaT
             
             if pd.isna(date_1) or pd.isna(date_2):
                 continue
-            date_1 = datetime.strptime(date_1, '%Y-%m-%dT%H:%M:%SZ')
-            date_2 = datetime.strptime(date_2, '%Y-%m-%dT%H:%M:%SZ')
+            date_1 = datetime.strptime(date_1[:10], '%Y-%m-%d')
+            date_2 = datetime.strptime(date_2[:10], '%Y-%m-%d')
+            print(date_1, date_2)
             span = (date_1 - date_2).days
             # add the citation span to the output dataframe
             output.at[i, 'span'] = span
@@ -262,13 +274,14 @@ if __name__ == "__main__":
     # first_appear = first_appear()
     # first_appear.run()
     
-    # compute_patent_citation_span = compute_patent_citation_span()
-    # compute_patent_citation_span.date_span()
-    # compute_patent_citation_span.average_span()
-    # compute_patent_citation_span.plot_distribution()
-    # compute_patent_citation_span.plot_distribution_2(save=True, output_path="output/avg_span_distribution.png")
+    # compute_patent_citation_span = compute_patent_citation_span(patents_path="temp/2010-2011.csv", compute_edge_list=True) not working, due to the limited number of references
+    compute_patent_citation_span = compute_patent_citation_span()
+    compute_patent_citation_span.date_span()
+    compute_patent_citation_span.average_span()
+    compute_patent_citation_span.plot_distribution()
+    compute_patent_citation_span.plot_distribution_2(save=True, output_path="output/avg_span_distribution.png")
     
-    network_plot = network_plot()
-    ids = ["US-10001331-B2"]
-    network_plot.plot_network(ids)
+    # network_plot = network_plot()
+    # ids = ["US-10001331-B2"]
+    # network_plot.plot_network(ids)
     

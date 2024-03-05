@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import os
 
 from utils.fetcher_helper import query_df
 from utils.fetcher_helper import query_img
@@ -108,7 +109,7 @@ class Fetcher:
         
         if df is None:
             df = self.df_basics
-        
+        df["datePublished"] = df["datePublished"].astype(str)
         df["datePublished"] = pd.to_datetime(df["datePublished"].str[:10])
         df_subset = df[(df['datePublished'] >= start) & (df['datePublished'] <= end)]
         return df_subset
@@ -155,7 +156,18 @@ class Fetcher:
             ids.extend(df_to_subset['4'].to_list())
         
         return ids
-                
+    
+def export_to_temp(df, filename):
+    """
+    Export the dataframe to the temp folder.
+    
+    Args:
+        df (pd.DataFrame) : the dataframe to export
+        filename (str) : the filename to save
+    """
+    os.makedirs("temp", exist_ok=True)
+    df.to_csv(f"temp/{filename}.csv", index=False)
+    print(f"Exported to temp/{filename}.csv")
 
 if __name__ == "__main__":
     fetcher = Fetcher()
@@ -171,6 +183,7 @@ if __name__ == "__main__":
     
     requirements = ("2010-01-01", "2011-01-01")
     print(len(fetcher.subset_patents("datePublished", requirements)))
+    export_to_temp(fetcher.subset_patents("datePublished", requirements), "2010-2021")
     
     requirements = ["Richard L.", "Marshfield"] 
     print(len(fetcher.subset_patents("inventorsName", requirements)))
