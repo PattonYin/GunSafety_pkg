@@ -2,6 +2,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
+import json
 from tqdm import tqdm, trange
 from datetime import datetime
 from pandas import NaT
@@ -247,18 +248,18 @@ class network_plot:
             return self.edge_list
         return self.edge_list[self.edge_list['child'].isin(ids) | self.edge_list['parent'].isin(ids)]
     
-    def prepare_edge_list(self, edge_list):
+    def prepare_edge_list(self, edge_list, threshold=1):
         # Compute the parent_count and child_count for each patent
         parent_count = edge_list['parent'].value_counts()
         child_count = edge_list['child'].value_counts()
         # remove the rows with parent count == 1
         print("removing rows")
-        edge_list = edge_list[edge_list['parent'].isin(parent_count[parent_count > 1].index)]
+        edge_list = edge_list[edge_list['parent'].isin(parent_count[parent_count > threshold].index)]
         
         return edge_list
         
     
-    def plot_network(self, ids, edge_color='grey', node_color=["darkslategray", "aliceblue"], node_alpha=0.5, line_alpha=0.5, node_size_scale=100, width=0.3, linewidths=0.5, outline_color='black', figsize=(10, 10), font_size=8, labels=False):
+    def plot_network(self, ids, threshold=2, edge_color='grey', node_color=["darkslategray", "aliceblue"], node_alpha=0.5, line_alpha=0.5, node_size_scale=100, width=0.3, linewidths=0.5, outline_color='black', figsize=(10, 10), font_size=8, labels=False):
         """Plot the network of the patents with given ids.
         
         Args:
@@ -269,7 +270,7 @@ class network_plot:
         
         # Add edges to the graph
         print('subsetting edge list')
-        edge_list = self.prepare_edge_list(self.subset_edge_list(ids))
+        edge_list = self.prepare_edge_list(self.subset_edge_list(ids), threshold=threshold)
         
         print('adding edges')
         for index, row in edge_list.iterrows():
@@ -358,9 +359,9 @@ class network_plot:
     
         
 if __name__ == "__main__":
-    first_appear = first_appear()
+    # first_appear = first_appear()
     # first_appear.run()
-    first_appear.plot_date()
+    # first_appear.plot_date()
     
     # compute_patent_citation_span = compute_patent_citation_span(patents_path="temp/2010-2011.csv", compute_edge_list=True) not working, due to the limited number of references
     # compute_patent_citation_span = compute_patent_citation_span()
@@ -369,7 +370,14 @@ if __name__ == "__main__":
     # compute_patent_citation_span.plot_distribution_2()
     # compute_patent_citation_span.plot_distribution_2(save=True, output_path="output/avg_span_distribution.png")
     
-    # network_plot = network_plot()
+    network_plot = network_plot()
+    with open('config.json') as f:
+        ids = json.load(f)['network_id_02']
+    network_plot.plot_network(ids)
+    # network_plot.plot_freq_count(ids=None)
+    
+    
+    
     # ids = ['US-10001331-B2',
     #         'US-10001332-B1',
     #         'US-10001335-B2',
@@ -471,6 +479,5 @@ if __name__ == "__main__":
     #         'US-10066903-B2',
     #         'US-10066906-B2']
     
-    # network_plot.plot_network(ids)
-    # network_plot.plot_freq_count(ids=None)
+
     
