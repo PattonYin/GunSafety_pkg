@@ -173,23 +173,35 @@ if __name__ == "__main__":
     fetcher = Fetcher()
     ids = ["US-20170067712-A9"]
     print(fetcher.get_basics(ids))
+    print("-------------------")
     
     ids = ["US-0441389-A", "US-0442014-A"]
     output_folder = "output_test"
     fetcher.query_img(ids, output_folder)
+    print("-------------------")
     
     print(fetcher.get_citations("US-10921097-B1"))
     print(fetcher.get_cited_by("US-5992291-A"))
+    print("-------------------")
     
-    requirements = ("2010-01-01", "2011-01-01")
+    requirements = ("1950-01-01", "2015-12-31")
     print(len(fetcher.subset_patents("datePublished", requirements)))
-    export_to_temp(fetcher.subset_patents("datePublished", requirements), "2010-2021")
+    # export_to_temp(fetcher.subset_patents("datePublished", requirements), "1950-2015")
+    print("-------------------")
     
     requirements = ["Richard L.", "Marshfield"] 
     print(len(fetcher.subset_patents("inventorsName", requirements)))
+    print("-------------------")
     
     requirements = ["CT", "MA"]
     print(len(fetcher.subset_patents("inventorState", requirements)))
+    print("-------------------")
+    
+    requirements = ["ITT Corporation"]
+    print(len(fetcher.subset_patents("assigneeName", requirements)))
+    print(fetcher.subset_patents("assigneeName", requirements))
+    print("-------------------")
     
     requirements = [["F41","A","3"], ["F41", "C", "3", "14"]]
     print(len(fetcher.filter_patents_by_cpc(requirements)))
+    print("-------------------")

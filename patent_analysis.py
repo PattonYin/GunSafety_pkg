@@ -114,13 +114,13 @@ class first_appear:
         # Extract the year from the date and Group by year and count the number of patents
         df['Year'] = df['1st_appeared_date'].dt.year
         counts = df.groupby('Year').size()
-
+        
         # Plot the counts
         plt.figure(figsize=(10, 6))
-        counts.plot(kind='line')
-        plt.title('Number of Patents Over Time')
+        counts.plot(kind='line', color='skyblue')
+        plt.title('Number of New Classifications Each Year')
         plt.xlabel('Year')
-        plt.ylabel('Number of Patents')
+        plt.ylabel('Number of New Classifications')
         plt.show()        
     
 class compute_patent_citation_span:
@@ -159,7 +159,6 @@ class compute_patent_citation_span:
                 continue
             date_1 = datetime.strptime(date_1[:10], '%Y-%m-%d')
             date_2 = datetime.strptime(date_2[:10], '%Y-%m-%d')
-            print(date_1, date_2)
             span = (date_1 - date_2).days
             # add the citation span to the output dataframe
             output.at[i, 'span'] = span
@@ -244,9 +243,22 @@ class network_plot:
         Returns:
             _TBD_ : subset of the edge list
         """
+        if ids is None:
+            return self.edge_list
         return self.edge_list[self.edge_list['child'].isin(ids) | self.edge_list['parent'].isin(ids)]
     
-    def plot_network(self, ids, edge_color='brown', node_color='skyblue', node_alpha=0.9, node_size=100, width=1, linewidths=1, figsize=(10, 10)):
+    def prepare_edge_list(self, edge_list):
+        # Compute the parent_count and child_count for each patent
+        parent_count = edge_list['parent'].value_counts()
+        child_count = edge_list['child'].value_counts()
+        # remove the rows with parent count == 1
+        print("removing rows")
+        edge_list = edge_list[edge_list['parent'].isin(parent_count[parent_count > 1].index)]
+        
+        return edge_list
+        
+    
+    def plot_network(self, ids, edge_color='grey', node_color=["darkslategray", "aliceblue"], node_alpha=0.5, line_alpha=0.5, node_size_scale=100, width=0.3, linewidths=0.5, outline_color='black', figsize=(10, 10), font_size=8, labels=False):
         """Plot the network of the patents with given ids.
         
         Args:
@@ -256,32 +268,209 @@ class network_plot:
         G = nx.DiGraph()
         
         # Add edges to the graph
-        edge_list = self.subset_edge_list(ids)
+        print('subsetting edge list')
+        edge_list = self.prepare_edge_list(self.subset_edge_list(ids))
+        
+        print('adding edges')
         for index, row in edge_list.iterrows():
             G.add_edge(row['child'], row['parent'])
+            
+        # determine the node size based on the number of citations
+        node_size = [G.degree(node) * node_size_scale for node in G]
         
+        # The more times of being referenced, the deeper the color, the more times of referencing, the brighter the color, the color changes from skyblue to deep red
+        # Calculate the difference between in-degree and out-degree for each node
+        degree_difference = {node: G.in_degree(node) - G.out_degree(node) for node in G}
+
+        # Normalize the differences to a 0-1 scale
+        min_diff = min(degree_difference.values())
+        max_diff = max(degree_difference.values())
+        normalized_diff = {node: (degree_difference[node] - min_diff) / (max_diff - min_diff) if max_diff > min_diff else 0.5 for node in G}
+
+        # Map the normalized differences to a color gradient from skyblue to red
+        import matplotlib.colors as mcolors
+
+        def get_node_color(value, node_color=node_color):
+            # Create a color map from skyblue to red
+            cmap = mcolors.LinearSegmentedColormap.from_list("grad", node_color)
+            return cmap(value)
+
+        node_color = [get_node_color(normalized_diff[node]) for node in G]
+
+                                
         # Plot the graph
         plt.figure(figsize=figsize)
         pos = nx.spring_layout(G)
+        if labels:
+            the_labels = {node: node for node in G.nodes()}
+        else:
+            the_labels = None
         nx.draw(G, pos, edge_color=edge_color, width=width, linewidths=linewidths,
-                node_size=node_size, node_color=node_color, alpha=node_alpha,
-                labels={node: node for node in G.nodes()})
+                node_size=node_size, node_color=node_color, alpha=node_alpha, font_size=font_size, edgecolors=outline_color,
+                with_labels=labels, labels=the_labels)
         plt.axis('off')
         plt.show()
+        
+        
+    
+    def plot_freq_count(self, ids, top_num=20):
+        edge_list = self.prepare_edge_list(self.subset_edge_list(ids))
+        parent_count = edge_list['parent'].value_counts()
+        # plot the frequency count of the patents in descending order only the top 20
+        plt.figure(figsize=(10, 8))
+        parent_count[:top_num].plot(kind='bar', color='turquoise', width=0.8)
+        plt.title('Top ' + str(top_num) + ' Most Cited Patents')  # Dynamically set the title based on top_num
+        plt.xlabel('Patent ID')
+        plt.ylabel('Frequency')
+        plt.xticks(rotation=45, ha='right')
+        plt.tight_layout()  # This will adjust the plot to fit better
+        plt.grid(axis='y', alpha=0.75)
+        plt.show()
+
+    def plot_freq_count(self, ids):
+        edge_list = self.prepare_edge_list(self.subset_edge_list(ids))
+        parent_count = edge_list['parent'].value_counts()
+        # Plot the frequency count of the patents in descending order for all patents
+        plt.figure(figsize=(12, 8))  # You may need to adjust this size depending on the total number of patents
+        ax = plt.gca()  # Get current axes
+
+        # Hide top and right spines
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+
+        # Show left and bottom spines
+        ax.spines['left'].set_visible(True)
+        ax.spines['bottom'].set_visible(True)
+
+        # Plot all values. Removed the slicing to include all patents.
+        parent_count.plot(kind='bar', color='turquoise', width=0.8)
+        plt.title('Frequency Count of All Cited Patents')  # Updated title since we are not limiting to top_num anymore
+        plt.xlabel('Patent ID')
+        plt.ylabel('Frequency')
+        plt.xticks(rotation=90, ha='right')  # Rotate x-ticks to 90 degrees for better label readability
+        
+        # Adding a grid
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5, color='gray')  # Customize the grid appearance
+
+        plt.tight_layout()  # This will adjust the plot to fit better
+        plt.show()
+
     
         
 if __name__ == "__main__":
-    # first_appear = first_appear()
+    first_appear = first_appear()
     # first_appear.run()
+    first_appear.plot_date()
     
     # compute_patent_citation_span = compute_patent_citation_span(patents_path="temp/2010-2011.csv", compute_edge_list=True) not working, due to the limited number of references
-    compute_patent_citation_span = compute_patent_citation_span()
-    compute_patent_citation_span.date_span()
-    compute_patent_citation_span.average_span()
-    compute_patent_citation_span.plot_distribution()
-    compute_patent_citation_span.plot_distribution_2(save=True, output_path="output/avg_span_distribution.png")
+    # compute_patent_citation_span = compute_patent_citation_span()
+    # compute_patent_citation_span.date_span()
+    # compute_patent_citation_span.average_span()
+    # compute_patent_citation_span.plot_distribution_2()
+    # compute_patent_citation_span.plot_distribution_2(save=True, output_path="output/avg_span_distribution.png")
     
     # network_plot = network_plot()
-    # ids = ["US-10001331-B2"]
+    # ids = ['US-10001331-B2',
+    #         'US-10001332-B1',
+    #         'US-10001335-B2',
+    #         'US-10001336-B2',
+    #         'US-10001337-B2',
+    #         'US-10001340-B1',
+    #         'US-10001342-B2',
+    #         'US-10001345-B2',
+    #         'US-10003756-B2',
+    #         'US-10004136-B2',
+    #         'US-10004209-B2',
+    #         'US-10005556-B2',
+    #         'US-10006727-B2',
+    #         'US-10006728-B2',
+    #         'US-10006729-B2',
+    #         'US-10006736-B2',
+    #         'US-10006739-B2',
+    #         'US-10006741-B2',
+    #         'US-10006745-B2',
+    #         'US-10012457-B2',
+    #         'US-10012464-B2',
+    #         'US-10012466-B2',
+    #         'US-10012469-B2',
+    #         'US-10012470-B2',
+    #         'US-10012472-B2',
+    #         'US-10012533-B2',
+    #         'US-10017250-B2',
+    #         'US-10018433-B2',
+    #         'US-10018434-B2',
+    #         'US-10018435-B2',
+    #         'US-10018438-B2',
+    #         'US-10018445-B2',
+    #         'US-10018446-B2',
+    #         'US-10018448-B2',
+    #         'US-10018449-B2',
+    #         'US-10024616-B2',
+    #         'US-10024619-B2',
+    #         'US-10024621-B2',
+    #         'US-10024628-B2',
+    #         'US-10024629-B2',
+    #         'US-10024630-B2',
+    #         'US-10024634-B2',
+    #         'US-10025306-B2',
+    #         'US-10030813-B2',
+    #         'US-10030922-B2',
+    #         'US-10030939-B2',
+    #         'US-10030940-B2',
+    #         'US-10032387-B2',
+    #         'US-10036603-B2',
+    #         'US-10036606-B2',
+    #         'US-10036608-B2',
+    #         'US-10036612-B2',
+    #         'US-10036613-B2',
+    #         'US-10036799-B2',
+    #         'US-10041752-B2',
+    #         'US-10041757-B2',
+    #         'US-10041763-B2',
+    #         'US-10042360-B2',
+    #         'US-10045561-B2',
+    #         'US-10048028-B2',
+    #         'US-10048029-B2',
+    #         'US-10048030-B2',
+    #         'US-10048043-B2',
+    #         'US-10051984-B2',
+    #         'US-10053803-B2',
+    #         'US-10054392-B2',
+    #         'US-10054394-B2',
+    #         'US-10054399-B2',
+    #         'US-10054400-B2',
+    #         'US-10054405-B2',
+    #         'US-10057468-B2',
+    #         'US-10059445-B2',
+    #         'US-10060177-B2',
+    #         'US-10060689-B2',
+    #         'US-10060691-B2',
+    #         'US-10060692-B2',
+    #         'US-10060694-B2',
+    #         'US-10060701-B1',
+    #         'US-10060705-B2',
+    #         'US-10060706-B2',
+    #         'US-10061069-B2',
+    #         'US-10062028-B2',
+    #         'US-10062464-B2',
+    #         'US-10063522-B2',
+    #         'US-10065095-B2',
+    #         'US-10065718-B1',
+    #         'US-10065720-B2',
+    #         'US-10066885-B2',
+    #         'US-10066886-B2',
+    #         'US-10066887-B1',
+    #         'US-10066888-B2',
+    #         'US-10066890-B1',
+    #         'US-10066892-B1',
+    #         'US-10066893-B2',
+    #         'US-10066897-B2',
+    #         'US-10066898-B1',
+    #         'US-10066900-B2',
+    #         'US-10066901-B2',
+    #         'US-10066903-B2',
+    #         'US-10066906-B2']
+    
     # network_plot.plot_network(ids)
+    # network_plot.plot_freq_count(ids=None)
     
