@@ -25,7 +25,7 @@ class Patent_Descriptive:
         self.data['cpcInventiveFlattened'] = self.data['cpcInventiveFlattened'].apply(lambda x: x.split(';') if pd.notna(x) else x)
         # convert datePublished, applicationFilingDate into datetime
         for col in ['datePublished', 'applicationFilingDate']:
-            self.data[col] = pd.to_datetime(self.data[col], errors='coerce', format='%Y-%m-%d').dt.date
+            self.data[col] = pd.to_datetime(self.data[col], errors='coerce', format='%Y-%m-%d')
         return self.data
 
     
@@ -156,6 +156,24 @@ class Patent_Descriptive:
         # Concatenate the original DataFrame with the new columns
         data = pd.concat([data, cpc_parts], axis=1)
         return data
+    
+    def dummy_by_time(self, data, column, cutoff, dummy = 'dummy'):
+        ''' 
+        Create the dummy code for a column by time.
+        input:
+            data (pd.DataFrame): The dataset to use. 
+            column (str): The name of the column to create the dummy variable for.
+            cutoff (str): The cutoff time to create the dummy variable.
+            dummy (str): The name of the dummy variable. Default is 'dummy'.
+        output:
+            pd.DataFrame: The dataset with the dummy variable.
+        '''
+        if isinstance(cutoff, str):
+            cutoff = pd.to_datetime(cutoff)
+        else: 
+            raise ValueError("The cutoff time should be a string.")
+        data[dummy] = (data[column] < cutoff).astype(int)
+        return data
   
      # ----------- HELPER Function Section ----------- 
     def convert_string_to_list(self, value):
@@ -175,15 +193,15 @@ class Patent_Descriptive:
         
 if __name__ == "__main__":
     data = pd.read_csv('/Users/liusimin/Desktop/Gun Safety/papers/patents_public.csv')
-    subset = data.iloc[30000:30100].reset_index(drop=True)  
+    subset = data.iloc[10000:30100].reset_index(drop=True)  
     # test0: reformat 
-    PD = Patent_Descriptive(subset)
-    print(PD.data[['guid','inventorCity']].head())
-    print(type(PD.data['inventorCity'].iloc[0]))
-    PD.reformat()
-    print(PD.data['inventorCity'].iloc[0])
-    print(type(PD.data['inventorCity'].iloc[0]))
-    print(PD.data.head())
+    # PD = Patent_Descriptive(subset)
+    # print(PD.data[['guid','inventorCity']].head())
+    # print(type(PD.data['inventorCity'].iloc[0]))
+    # PD.reformat()
+    # print(PD.data['inventorCity'].iloc[0])
+    # print(type(PD.data['inventorCity'].iloc[0]))
+    # print(PD.data.head())
 
     # test1: general test on invnetorState
     # PD = Patent_Descriptive(subset)
@@ -216,4 +234,10 @@ if __name__ == "__main__":
     # PD.reformat()
     # pd_sc = PD.separate_category(PD.data)
     # print(pd_sc.head())
-   
+    
+    # test5: dummy_by_time
+    # PD = Patent_Descriptive(subset)
+    # PD.reformat()
+    # dt0 = PD.dummy_by_time(PD.data, 'datePublished', '2006-06-01')
+    # print(dt0.head())
+    # dt_freq = PD.frequency(dt0, 'dummy')
