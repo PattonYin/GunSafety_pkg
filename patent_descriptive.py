@@ -1,10 +1,8 @@
 # Patent package from R
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
-import re
 import ast
-
+from collections import Counter
 class Patent_Descriptive:
     ''' 
     Python version of the patent package from R
@@ -17,20 +15,26 @@ class Patent_Descriptive:
         reformat the dataset to correct datatype. 
         SHOULD be run before any other functions. 
         '''
-        # transform city, name, state into list
-        for col in ['inventorsName', 'inventorCity', 'inventorState', 'assigneeName', 'assigneeCity', 'assigneeState']:
-            self.data[col] = self.data[col].apply(self.convert_string_to_list)
-        # convert cpcInventiveFlattened into list
-        self.data['cpcInventiveFlattened'] = self.data['cpcInventiveFlattened'].str.replace(r"[\[\]']", "", regex=True)
-        self.data['cpcInventiveFlattened'] = self.data['cpcInventiveFlattened'].apply(lambda x: x.split(';') if pd.notna(x) else x)
-        # convert datePublished, applicationFilingDate into datetime
-        for col in ['datePublished', 'applicationFilingDate']:
-            self.data[col] = pd.to_datetime(self.data[col], errors='coerce', format='%Y-%m-%d')
+        try: # transform city, name, state into list
+            for col in ['inventorsName', 'inventorCity', 'inventorState', 'assigneeName', 'assigneeCity', 'assigneeState']:
+                self.data[col] = self.data[col].apply(self.convert_string_to_list)
+        except KeyError:
+            pass
+        try: # convert cpcInventiveFlattened into list
+            self.data['cpcInventiveFlattened'] = self.data['cpcInventiveFlattened'].str.replace(r"[\[\]']", "", regex=True)
+            self.data['cpcInventiveFlattened'] = self.data['cpcInventiveFlattened'].apply(lambda x: x.split(';') if pd.notna(x) else x)
+        except KeyError:
+            pass
+        try: # convert datePublished, applicationFilingDate into datetime
+            self.data['datePublished'] = pd.to_datetime(self.data['datePublished'], errors = 'coerce')
+            self.data['applicationFilingDate'] = pd.to_datetime(self.data['applicationFilingDate'], errors = 'coerce')
+        except KeyError:
+            pass
         return self.data
 
     
-    def clean_by(self, column):
-        """
+    def clean_by(self, data, column):
+        """""
         Clean the dataset based on a column.
         This function cleans the dataset based on the columns about demographic data, including:
         inventorState, assigneeState, inventorName, assigneeName, inventorCity, and assigneeCity.
@@ -45,7 +49,7 @@ class Patent_Descriptive:
         # Clean square brackets and single quotes
         # self.data[column] = self.data[column].str.replace(r"[\[\]']", "", regex=True)
         # Expand the column into multiple rows split by ', '
-        new_set = self.data.copy()
+        new_set = data.copy()
         # new_set = new_set.drop(column, axis=1).join(new_set.explode(column).reset_index(drop=True))
         new_set = new_set.explode(column).reset_index(drop=True)
         if column in ["inventorState", "assigneeState"]:
@@ -65,12 +69,14 @@ class Patent_Descriptive:
         return new_set
     
     def frequency(self, data, column, graph = True, num = 5, rotation = 45,
-                  descending = True, figsize = (10, 6), color = 'hotpink'):
+                  descending = True, figsize = (10, 6), color = 'hotpink', 
+                  title = 'Frequency Distribution'):
         """
         Generate a frequency table for a column.
         This function generates a frequency table for a column.
+        If the column is 'keywords', it will generate a frequency table for the keywords.
         input:
-            self.data (pd.DataFrame): The dataset to analyze.
+            data (pd.DataFrame): The dataset to analyze.
             column (str): The name of the column to analyze.
             graph (bool): Whether to generate a bar plot. Default is True.
             num (int): The top n values to display in the plot. Default is 5.
@@ -84,7 +90,12 @@ class Patent_Descriptive:
         if column not in data.columns:
             raise ValueError(f"The column '{column}' does not exist in the DataFrame.")
         # Generate frequency table
-        frequency_table = data[column].value_counts().sort_values(ascending=(not descending))
+        if column == 'keyword':
+            all_words = [word for sublist in data['keyword'] if sublist is not pd.NA for word in sublist]
+            word_counts = Counter(all_words)
+            frequency_table = pd.DataFrame(word_counts.items(), columns=['Word', 'Frequency']).sort_values(by='Frequency', ascending=False).reset_index(drop=True)
+        else: 
+            frequency_table = data[column].value_counts().sort_values(ascending=(not descending))
         # Display the frequency table
         print(f"Frequency table for '{column}':")
         print(frequency_table.head(num))
@@ -116,6 +127,7 @@ class Patent_Descriptive:
             figsize (tuple): The size of the plot. Default is (10, 6).
             color (str): The color of the bars in the plot. Default is 'tomato'.
             descending (bool): Whether to sort the frequency table in descending order. Default is True.
+        output: list. A list of frequency tables for each group.
         '''
         # Check if the columns exist in the DataFrame
         if group not in data or target not in data:
@@ -123,21 +135,30 @@ class Patent_Descriptive:
         grouped = data.groupby(group)  # Group the dataframe by the specified column
         frequency_tables = []  # List to store frequency tables
         for group_name, group_df in grouped:
-            # Generate frequency table for the group
-            frequency_table = group_df[target].value_counts().sort_values(ascending=(not descending))
+            if target == 'keyword':
+                all_words = [word for sublist in group_df['keyword'] if sublist is not pd.NA for word in sublist]
+                word_counts = Counter(all_words)
+                frequency_table = pd.DataFrame(word_counts.items(), columns=[target, 'Frequency']).sort_values(by='Frequency', ascending=False).reset_index(drop=True)
+            else: 
+                frequency_table = data[target].value_counts().sort_values(ascending=(not descending))
+                frequency_table.columns = [target, 'Frequency']
             print(f"Frequency table for '{target}' by '{group}': {group_name}")
             print(frequency_table.head(num))
             frequency_tables.append(frequency_table)
             
             if graph: 
-                plt.figure(figsize=figsize)
-                frequency_table.plot(kind='bar', color = color)
-                plt.title(f'Frequency Distribution of {target} for {group_name}')
-                plt.xlabel(target)
-                plt.xticks(rotation = rotation)
-                plt.ylabel('Frequency')
-                plt.tight_layout()
-                plt.show()
+                try:
+                    plt.figure(figsize=figsize)
+                    frequency_table.plot(kind='bar', color = color)
+                    plt.title(f'Frequency Distribution of {target} for {group_name}')
+                    plt.xlabel(target)
+                    plt.xticks(rotation = rotation)
+                    plt.ylabel('Frequency')
+                    plt.tight_layout()
+                    plt.show()
+                except TypeError:
+                    print(f"No data to plot for '{group_name}'.")
+                    continue
         return frequency_tables
     
     def separate_category(self, data):
@@ -159,7 +180,8 @@ class Patent_Descriptive:
     
     def dummy_by_time(self, data, column, cutoff, dummy = 'dummy'):
         ''' 
-        Create the dummy code for a column by time.
+        Create the dummy code for a column by time. 
+        Time before the cutoff is coded as 1, and time after the cutoff is coded as 0.
         input:
             data (pd.DataFrame): The dataset to use. 
             column (str): The name of the column to create the dummy variable for.
@@ -169,7 +191,9 @@ class Patent_Descriptive:
             pd.DataFrame: The dataset with the dummy variable.
         '''
         if isinstance(cutoff, str):
-            cutoff = pd.to_datetime(cutoff)
+            cutoff = pd.Timestamp(cutoff, tz = 'UTC')
+        elif isinstance(cutoff, pd.Timestamp):
+            data[dummy] = (data[column] < cutoff).astype(int)
         else: 
             raise ValueError("The cutoff time should be a string.")
         data[dummy] = (data[column] < cutoff).astype(int)

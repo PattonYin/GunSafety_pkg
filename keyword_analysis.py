@@ -2,6 +2,7 @@ import yake
 import string
 import nltk
 import pandas as pd
+from collections import Counter
 
 from utils.keyword_utils import tuple_list_to_strings, count_frequency
 
@@ -42,27 +43,30 @@ class Keyword_Analysis:
         # go over the loop
         for i in range(length):
             # get the abstract and name of a patent
-            abstract = self.data[self.colname].iloc[i].translate(self.translator)
-            identifier = self.data[self.identifier].iloc[i]
-            # tokenize the text into 1-3 grams
-            all_words = nltk.word_tokenize(abstract)
-            bigrams = list(nltk.bigrams(all_words))
-            trigrams = list(nltk.trigrams(all_words))
-            ngrams=bigrams+trigrams 
-            ngrams=tuple_list_to_strings(ngrams)+all_words 
-            # count catch word frequency
-            if catch_word: 
-                for word in self.catch_word:
-                    word_count = ngrams.count(word)
-                    data.at[i, word] = word_count
-            # count keyword frequency 
-            if keyword: 
-                try: 
-                    keywords_list = self.keywords[identifier] # get the keywords list from the dictionary
-                    keyword_count = count_frequency(keywords_list, ngrams) # count the frequency of keywords
-                    data.at[i, 'keyword'] = keyword_count
-                except KeyError:
-                    print("No keywords found for patent", identifier)
+            try: 
+                abstract = self.data[self.colname].iloc[i].translate(self.translator)
+                identifier = self.data[self.identifier].iloc[i]
+                # tokenize the text into 1-3 grams
+                all_words = nltk.word_tokenize(abstract)
+                bigrams = list(nltk.bigrams(all_words))
+                trigrams = list(nltk.trigrams(all_words))
+                ngrams=bigrams+trigrams 
+                ngrams=tuple_list_to_strings(ngrams)+all_words 
+                # count catch word frequency
+                if catch_word: 
+                    for word in self.catch_word:
+                        word_count = ngrams.count(word)
+                        data.at[i, word] = word_count
+                # count keyword frequency 
+                if keyword: 
+                    try: 
+                        keywords_list = self.keywords[identifier] # get the keywords list from the dictionary
+                        keyword_count = count_frequency(keywords_list, ngrams) # count the frequency of keywords
+                        data.at[i, 'keyword'] = keyword_count
+                    except KeyError:
+                        print("No keywords found for patent", identifier)
+            except AttributeError:
+                data.at[i, 'keyword'] = pd.NA
         return data
     
     def get_keywords(self):
@@ -74,12 +78,15 @@ class Keyword_Analysis:
         length = len(self.data)
         data['keyword'] = [{}] * length
         for i in range(length):
-            abstract = self.data[self.colname].iloc[i].translate(self.translator)
-            identifier = self.data[self.identifier].iloc[i]
-            keywords = self.yake.extract_keywords(abstract)
-            keywords = [keyword[0] for keyword in keywords]
-            self.keywords[identifier] = keywords
-            data.at[i, 'keyword'] = keywords
+            try:
+                abstract = self.data[self.colname].iloc[i].translate(self.translator)
+                identifier = self.data[self.identifier].iloc[i]
+                keywords = self.yake.extract_keywords(abstract)
+                keywords = [keyword[0] for keyword in keywords]
+                self.keywords[identifier] = keywords
+                data.at[i, 'keyword'] = keywords
+            except AttributeError:
+                data.at[i, 'keyword'] = pd.NA
         return data
     
     def get_keyword_frequency(self):
@@ -87,22 +94,37 @@ class Keyword_Analysis:
         Get the frequency of keywords in the dataset
         output: a dictionary of keyword frequencies
         '''
+        key_freq = {}
         length = len(self.data)
         for i in range(length):
             identifier = self.data[self.identifier].iloc[i]
             keywords = self.keywords[identifier]
-            self.key_freq[identifier] = count_frequency(keywords, keywords)
-        return self.key_freq
+            key_freq[identifier] = count_frequency(keywords, keywords)
+        return key_freq
 
+    def keyword_freq(self, data):
+        '''
+        Get the frequency of keywords for all patents in the dataset
+        
+        input: data. The dataframe with the keywords column
+        output: df_word_counts. The dataframe with the word and frequency columns
+        '''
+        all_words = [word for sublist in data['keyword'] if sublist is not pd.NA for word in sublist]
+        # Use Counter to count frequencies
+        word_counts = Counter(all_words)
+        # Convert the Counter object to a DataFrame
+        df_word_counts = pd.DataFrame(word_counts.items(), columns=['Word', 'Frequency']).sort_values(by='Frequency', ascending=False).reset_index(drop=True)
+        return df_word_counts
 
 if __name__ == "__main__":
     # SA = Safeword_Analysis()
-    data = pd.read_csv('/Users/liusimin/Desktop/Gun Safety/papers/all_patents_abstract.csv')
-    subset = data.iloc[10000:10010].reset_index(drop=True)
-    KA = Keyword_Analysis(data=subset, num_keywords = 10)
+    dataset = pd.read_csv('/Users/liusimin/Desktop/Gun Safety/papers/all_patents_abstract.csv')
+    # print(dataset.head())
+    # subset = data.iloc[10000:10010].reset_index(drop=True)
+    KA = Keyword_Analysis(data=dataset, num_keywords = 10)
     keyword = KA.get_keywords()
     print(keyword.head())
-    catch = KA.get_word_count(True, True)
-    print(catch.head())
+    # catch = KA.get_word_count(True, True)
+    # print(catch.head())
     
     
