@@ -13,7 +13,8 @@ import numpy as np
 
 class first_appear:
     def __init__(self):
-        self.dataset = None
+        os.makedirs('temp', exist_ok=True)
+        os.makedirs('output', exist_ok=True)
 
     def run(self, patent_path="data/df_basics.csv", classification_path="data/patent_classification.csv"):
         self.parent_date_process(patents_path=patent_path) # 1.0 - parent_date_process
@@ -25,7 +26,7 @@ class first_appear:
     # 1.0 - parent_date_process
     def parent_date_process(self, patents_path="data/df_basics.csv", output_path="temp/patent_date.csv"):
         """
-        Process the parent date of all patents and save it to a csv file.
+        Extract the parent date of all the patents and save it to a csv file.
 
         Args:
             all_patents_path (str, optional): Path to the dataframe containing the patent ids and datePublished. Defaults to "data/df_basics.csv".
@@ -34,8 +35,6 @@ class first_appear:
         print("csv read")
         df_out = df_all_patents[['guid', 'datePublished']]
         print("subsetted")
-        os.makedirs('temp', exist_ok=True)
-        os.makedirs('output', exist_ok=True)
         df_out.to_csv(output_path, index=False)
         
     # 1.1 - for each category, find the first appeared patent and the corresponding date
@@ -83,7 +82,7 @@ class first_appear:
             data_path_01 (str, optional): input data path . Defaults to "temp/cate_date_data".
             output_path (str, optional): output data path. Defaults to "output/first_appeared.csv".
         """
-        list = []
+        list_pt = []
         index = 0
         for file in tqdm(os.listdir(data_path_01), desc="finding the earliest date"):
             df = pd.read_csv(f'{data_path_01}/{file}', low_memory=False)
@@ -98,8 +97,8 @@ class first_appear:
             earliest_cate_3 = str(int(df[df['datePublished'] == earliest_date]['2'].values[0]))
             earliest_cate_4 = str(int(df[df['datePublished'] == earliest_date]['3'].values[0]))
             earliest_cate = earliest_cate_1 + '/' + earliest_cate_2 + '/' + earliest_cate_3 + '/' + earliest_cate_4
-            list.append([earliest_id, earliest_date, earliest_cate])
-        first_appeared = pd.DataFrame(list, columns=['guid', '1st_appeared_date', 'earliest_cate'])
+            list_pt.append([earliest_id, earliest_date, earliest_cate])
+        first_appeared = pd.DataFrame(list_pt, columns=['guid', '1st_appeared_date', 'earliest_cate'])
         first_appeared.to_csv(output_path, index=False)
 
     # 1.4 - plot out how the patents distribute over time

@@ -3,6 +3,7 @@ import string
 import nltk
 import pandas as pd
 from collections import Counter
+from tqdm import trange
 
 from utils.keyword_utils import tuple_list_to_strings, count_frequency
 
@@ -41,7 +42,7 @@ class Keyword_Analysis:
         if keyword:
             data['keyword'] = [{}] * length
         # go over the loop
-        for i in range(length):
+        for i in trange(length):
             # get the abstract and name of a patent
             try: 
                 abstract = self.data[self.colname].iloc[i].translate(self.translator)
@@ -77,7 +78,7 @@ class Keyword_Analysis:
         data = self.data.copy()
         length = len(self.data)
         data['keyword'] = [{}] * length
-        for i in range(length):
+        for i in trange(length, desc="finding keywords"):
             try:
                 abstract = self.data[self.colname].iloc[i].translate(self.translator)
                 identifier = self.data[self.identifier].iloc[i]
