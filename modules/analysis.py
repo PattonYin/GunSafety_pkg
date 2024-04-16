@@ -10,9 +10,12 @@ def check_path(path_to_data):
     else:
         raise FileNotFoundError(f"{path_to_data} does not exist.\nPlease specify the path to the patent data")
 
-def first_appear_analysis(path_to_data="data", file_path="raw/df_basics.csv"):
+def first_appear_analysis(path_to_data="data", file_path="raw/df_basics.csv",df=None):
     # Step 1.0 - parent_date_process
-    parent_date_process(path_to_data=path_to_data, file_path=file_path) 
+    if df is None:
+        parent_date_process(path_to_data=path_to_data, file_path=file_path)
+    else:
+        parent_date_process(path_to_data=path_to_data, file=df) 
     # 1.1 - subset_category    
     subset_category(path_to_data=path_to_data) 
     # 1.2 - join_date    
@@ -23,7 +26,7 @@ def first_appear_analysis(path_to_data="data", file_path="raw/df_basics.csv"):
     plot_date(path_to_data=path_to_data)
 
 # 1.0 - parent_date_process
-def parent_date_process(path_to_data="data", file_path="raw/df_basics.csv"):
+def parent_date_process(path_to_data="data", file_path="raw/df_basics.csv", file=None):
     """
     Extract the parent date of all the patents and save it to a csv file.
 
@@ -38,7 +41,10 @@ def parent_date_process(path_to_data="data", file_path="raw/df_basics.csv"):
     os.makedirs(output_folder, exist_ok=True)
     output_path=os.path.join(path_to_data, "intermediate/first_appear/patent_date.csv")
     
-    df_all_patents = pd.read_csv(patents_path, low_memory=False)
+    if file is None:
+        df_all_patents = pd.read_csv(patents_path, low_memory=False)
+    else:
+        df_all_patents = file
     print("csv read")
     df_out = df_all_patents[['guid', 'datePublished']]
     print("subsetted")
@@ -151,6 +157,116 @@ def plot_date(path_to_data="data"):
     plt.show()        
     
     
+class compute_patent_citation_span:
+    def __init__(self, patents_path="data/df_basics.csv", subset_edge_list=False):
+        self.df_basics = pd.read_csv(patents_path)
+        self.edge_list = pd.read_csv("data/edge_list.csv")
+        if subset_edge_list:
+            self.subset_edge_list()
+            
+    def subset_edge_list(self):
+        """Compute the edge list of the patents.
+        """
+        raw_edge_list = self.edge_list
+        # Subset the edge_list only if the ids in 'child' column are in the df_basics guid column
+        edge_list = raw_edge_list[raw_edge_list['child'].isin(self.df_basics['guid'])]
+        self.edge_list = edge_list
+        
+    def date_span(self, output_path="output/citation_span.csv"):
+        """Compute the citation span for each patent.
+        
+        Args:
+            output_path (str, optional): output file path. Defaults to "output/citation_span.csv".
+        """
+        output = self.edge_list.copy()
+        for i in trange(len(self.edge_list)):
+            # get the date of both the citing and cited patents
+            id_1 = self.edge_list.iloc[i]['child']
+            id_2 = self.edge_list.iloc[i]['parent']
+            date_1_row = self.df_basics[self.df_basics['guid'] == id_1]['datePublished'].astype(str)
+            date_1 = date_1_row.values[0] if not date_1_row.empty else NaT
+            
+            date_2_row = self.df_basics[self.df_basics['guid'] == id_2]['datePublished'].astype(str)
+            date_2 = date_2_row.values[0] if not date_2_row.empty else NaT
+            
+            if pd.isna(date_1) or pd.isna(date_2):
+                continue
+            date_1 = datetime.strptime(date_1[:10], '%Y-%m-%d')
+            date_2 = datetime.strptime(date_2[:10], '%Y-%m-%d')
+            span = (date_1 - date_2).days
+            # add the citation span to the output dataframe
+            output.at[i, 'span'] = span
+        
+        output.to_csv(output_path, index=False)
+        
+    def average_span(self, data_path="output/citation_span.csv", output_path="output/avg_citation_span.csv"):
+        """Compute the average citation span.
+        
+        Args:
+            data_path (str, optional): input file path. Defaults to "output/citation_span.csv".
+            output_path (str, optional): output file path. Defaults to "output/avg_citation_span.csv".
+        """
+        df_span = pd.read_csv(data_path)
+        # initialize another dataframe to store the average span for each patent
+        df_avg_span = pd.DataFrame(columns=['child_guid', 'avg_span'])
+        
+        patent_group = df_span.groupby('child')
+        # compute the average span for each patent
+        avg_span = patent_group['span'].mean()
+        child_list = []
+        span_list = []
+        for child, span in avg_span.items():
+            child_list.append(child)
+            span_list.append(span)
+        df_avg_span['child_guid'] = child_list
+        df_avg_span['avg_span'] = span_list
+        df_avg_span.to_csv(output_path, index=False)
+    
+    def plot_distribution(self, data_path="output/avg_citation_span.csv", save=False, output_path="output/avg_span_distribution.png"):
+        """Plot the distribution of the average citation span.
+        
+        Args:
+            data_path (str, optional): input file path. Defaults to "output/avg_citation_span.csv".
+        """
+        df_avg_span = pd.read_csv(data_path)
+        plt.figure(figsize=(10, 6))
+        plt.hist(df_avg_span['avg_span'], bins=50, color='pink', edgecolor='red')
+        plt.title('Distribution of Average Span')
+        plt.xlabel('Average Span')
+        plt.ylabel('Frequency')
+        plt.grid(axis='y', alpha=0.75)
+
+        if save:
+            plt.savefig(output_path, dpi=300)
+            plt.close()
+        else:
+            plt.show()
+    
+    
+    def plot_distribution_2(self, data_path="output/avg_citation_span.csv", bins=50, kde=True, color='teal', save=False, output_path="output/avg_span_distribution.png"):
+        """Plot the distribution of the citation span.
+        
+        Args:
+            data_path (str, optional): input file path. Defaults to "output/citation_span.csv".
+        """
+        df_avg_span = pd.read_csv(data_path)
+        df_avg_span.replace([np.inf, -np.inf], np.nan, inplace=True)
+        sns.set(style="whitegrid")
+        plt.figure(figsize=(12, 7))
+        sns.histplot(df_avg_span['avg_span'], bins=bins, kde=kde, color=color)
+        plt.title('Distribution of Average Span with KDE', fontsize=15)
+        plt.xlabel('Average Span', fontsize=12)
+        plt.ylabel('Frequency', fontsize=12)
+        
+        if save:
+            plt.savefig(output_path, dpi=300)
+            plt.close()
+        else:
+            plt.show()
+
+
+
+
 
 
 if __name__ == "__main__":
