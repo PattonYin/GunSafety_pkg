@@ -6,6 +6,8 @@ temp_files/
 output_test/
 output/
 temp/
+test.ipynb
+demo.ipynb
 
 # Ignore the cache
 __pycache__/

@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import ast
 from collections import Counter
+import matplotlib.ticker as ticker
 class Patent_Descriptive:
     ''' 
     Python version of the patent package from R
@@ -34,14 +35,14 @@ class Patent_Descriptive:
 
     
     def clean_by(self, data, column):
-        """""
+        """
         Clean the dataset based on a column.
         This function cleans the dataset based on the columns about demographic data, including:
         inventorState, assigneeState, inventorName, assigneeName, inventorCity, and assigneeCity.
         If the column is inventorState or assigneeState, it will separate the column into multiple rows,
         clean the duplicates, and other countries.
         input:
-            self.data (pd.DataFrame): The dataset to clean.
+            data (pd.DataFrame): The dataset to clean.
             column (str): The name of the column to clean. It can be inventorState or assigneeState.
         output:
             pd.DataFrame: The cleaned dataset. Usually, it has more rows than the original dataset.
@@ -69,8 +70,7 @@ class Patent_Descriptive:
         return new_set
     
     def frequency(self, data, column, graph = True, num = 5, rotation = 45,
-                  descending = True, figsize = (10, 6), color = 'hotpink', 
-                  title = 'Frequency Distribution'):
+                  descending = True, figsize = (10, 6), color = 'hotpink'):
         """
         Generate a frequency table for a column.
         This function generates a frequency table for a column.
@@ -93,19 +93,20 @@ class Patent_Descriptive:
         if column == 'keyword':
             all_words = [word for sublist in data['keyword'] if sublist is not pd.NA for word in sublist]
             word_counts = Counter(all_words)
-            frequency_table = pd.DataFrame(word_counts.items(), columns=['Word', 'Frequency']).sort_values(by='Frequency', ascending=False).reset_index(drop=True)
+            frequency_table = pd.DataFrame(word_counts.items(), columns=[column, 'Frequency']).sort_values(by='Frequency', ascending=False).reset_index(drop=True)
         else: 
-            frequency_table = data[column].value_counts().sort_values(ascending=(not descending))
+            frequency_table = data[column].value_counts().sort_values(ascending=(not descending)).reset_index()
+            frequency_table.columns = [column, 'Frequency']
         # Display the frequency table
         print(f"Frequency table for '{column}':")
         print(frequency_table.head(num))
         # Plot the frequency distribution
         if graph: 
             plt.figure(figsize=figsize)
-            frequency_table.plot(kind='bar', color = color)
+            frequency_table.iloc[:num].plot(x= column, y = 'Frequency', kind='bar', color = color)
             plt.title(f'Frequency Distribution of {column}')
             plt.xlabel(column)
-            plt.xticks(rotation = rotation)
+            plt.xticks(rotation = rotation, ha='right', fontsize=10)
             plt.ylabel('Frequency')
             plt.tight_layout()
             plt.show()
@@ -140,24 +141,24 @@ class Patent_Descriptive:
                 word_counts = Counter(all_words)
                 frequency_table = pd.DataFrame(word_counts.items(), columns=[target, 'Frequency']).sort_values(by='Frequency', ascending=False).reset_index(drop=True)
             else: 
-                frequency_table = data[target].value_counts().sort_values(ascending=(not descending))
+                frequency_table = data[target].value_counts().sort_values(ascending=(not descending)).reset_index()
                 frequency_table.columns = [target, 'Frequency']
             print(f"Frequency table for '{target}' by '{group}': {group_name}")
             print(frequency_table.head(num))
             frequency_tables.append(frequency_table)
             
             if graph: 
-                try:
+                try: 
                     plt.figure(figsize=figsize)
-                    frequency_table.plot(kind='bar', color = color)
+                    frequency_table.iloc[:num].plot(x= target, y = 'Frequency', kind='bar', color = color)
                     plt.title(f'Frequency Distribution of {target} for {group_name}')
                     plt.xlabel(target)
-                    plt.xticks(rotation = rotation)
+                    plt.xticks(rotation = rotation, ha='right', fontsize=10)
                     plt.ylabel('Frequency')
                     plt.tight_layout()
                     plt.show()
                 except TypeError:
-                    print(f"No data to plot for '{group_name}'.")
+                    print(f"No data available for '{group_name}'")
                     continue
         return frequency_tables
     
@@ -180,8 +181,7 @@ class Patent_Descriptive:
     
     def dummy_by_time(self, data, column, cutoff, dummy = 'dummy'):
         ''' 
-        Create the dummy code for a column by time. 
-        Time before the cutoff is coded as 1, and time after the cutoff is coded as 0.
+        Create the dummy code for a column by time.
         input:
             data (pd.DataFrame): The dataset to use. 
             column (str): The name of the column to create the dummy variable for.
@@ -191,13 +191,40 @@ class Patent_Descriptive:
             pd.DataFrame: The dataset with the dummy variable.
         '''
         if isinstance(cutoff, str):
-            cutoff = pd.Timestamp(cutoff, tz = 'UTC')
-        elif isinstance(cutoff, pd.Timestamp):
-            data[dummy] = (data[column] < cutoff).astype(int)
+            cutoff = pd.to_datetime(cutoff)
         else: 
             raise ValueError("The cutoff time should be a string.")
         data[dummy] = (data[column] < cutoff).astype(int)
         return data
+    
+    def first_appear(self, data, target, graph = True, figsize = (10, 6), color = 'lightgreen'):
+        ''' 
+        Generate a bar plot of the first appearance of target column.
+        input:
+            data (pd.DataFrame): The dataset to analyze.
+            target (str): The name of the column to analyze.
+            graph (bool): Whether to generate a line plot. Default is True.
+            figsize (tuple): The size of the plot. Default is (10, 6).
+            color (str): The color of the bars in the plot. Default is 'lightgreen'.
+        output:
+            pd.DataFrame: The first appearance of target column.
+        '''
+        first_appear = data.groupby(target)['datePublished'].min().sort_values().reset_index()
+        first_appear.columns = [target, 'FirstAppearance']
+        first_appear['Year'] = first_appear['FirstAppearance'].dt.year
+        counts = first_appear.groupby('Year').size()
+        print(counts)
+        if graph: 
+            plt.figure(figsize=figsize)
+            counts.plot(kind='line', color=color)
+            plt.title('First Appearance of ' + target + ' Over Time')
+            plt.xlabel('Year')
+            plt.ylabel('Frequency')
+            ax = plt.gca()  # 'get current axis'
+            ax.xaxis.set_major_locator(ticker.MultipleLocator(base=15)) 
+            plt.tight_layout()
+            plt.show()
+        return first_appear
   
      # ----------- HELPER Function Section ----------- 
     def convert_string_to_list(self, value):
@@ -213,7 +240,6 @@ class Patent_Descriptive:
                 return [value]
             else: 
                 return pd.NA  
-    
         
 if __name__ == "__main__":
     data = pd.read_csv('/Users/liusimin/Desktop/Gun Safety/papers/patents_public.csv')

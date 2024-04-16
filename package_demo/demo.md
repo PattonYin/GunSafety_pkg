@@ -40,7 +40,7 @@ The object has 1 attribute and 6 methods.
 - data: The data set to analyze.
 
 ### Methods
-- `reformat`: Reformat the dataset to correct datatype. Should be run **before** any other functions. 
+- `reformat`: Reformat the dataset to correct data type. Should be run **before** any other functions. 
 
 - `clean_by`: Clean the dataset based on a column.
     This function cleans the dataset based on the columns about demographic data, including: inventorState, assigneeState, inventorName, assigneeName, inventorCity, and assigneeCity. If the column is inventorState or assigneeState, it will separate the column into multiple rows, clean the duplicates, and other countries.
@@ -104,6 +104,18 @@ The object has 1 attribute and 6 methods.
     output:
     - pd.DataFrame: The dataset with the dummy variable.
 
+- `first_appear`: Generate a line plot of the first appearance of target column.
+
+    input:
+    - data (pd.DataFrame): The dataset to analyze.
+    - target (str): The name of the column to analyze.
+    - graph (bool): Whether to generate a bar plot. Default is True.
+    - figsize (tuple): The size of the plot. Default is (10, 6).
+    - color (str): The color of the bars in the plot. Default is 'lightgreen'.
+
+    output:
+    - pd.DataFrame: The first appearance of target column.
+
 ## Sample Use
 
 1. Import the dataset and create a `Keyword_Analysis` object. 
@@ -132,7 +144,7 @@ print(fck.head())
 4. Check the overall frequency of keywords 
 ```
 # import dataset
-pd_data = pd.read_csv('/Users/liusimin/Desktop/Gun Safety/papers/clean_data_4.csv')
+pd_data = pd.read_csv('/Users/liusimin/Desktop/Gun Safety/papers/all_patents3.csv')
 # merge the dataset
 data = pd.merge(keyword, pd_data, on='guid', how='left')
 # create a Patent_Descriptive object 
@@ -140,7 +152,7 @@ pdt1 = Patent_Descriptive(data = data)
 # reformat the dataset
 pdt1.reformat()
 # check frequency
-kf = pdt1.frequency(data = pdt1.data, column = 'keywords', n = 30)
+kf = pdt1.frequency(data = pdt1.data, column = 'keyword', num = 30)
 ```
 From the frequency plot of `kf`, while keyword is the x axis, frequency is the y axis, the plot shows that `barrel`, `target`, and `trigger` are the top 3 words of gun components that have been mentioned most frequently for all F41 firearm related patents over time.   
 
@@ -176,7 +188,7 @@ F41G = F41.loc[F41['subcategory2'] == 'G']
 7. Analyze subcategories
 ```
 # subcategory2 frequency for F41
-F41_npdt1.frequency(data = t, column = 'subcategory2', num = len(t['subcategory2'].unique()))
+F41_n = pdt1.frequency(data = F41, column = 'subcategory2', num = len(F41['subcategory2'].unique()))
 
 # subcategory3 frequency for F41A, F41C, F41G
 F41A_n = pdt1.frequency(data = F41A, column = 'subcategory3', rotation =0, num = len(F41A['subcategory3'].unique()))
@@ -219,3 +231,9 @@ assignee_2000s = assignee_data.loc[assignee_data['dummy'] == 0]
 assignee_2000s_freq = pdt1.frequency(column = 'assigneeName', data = assignee_2000s)
 ```
 Top assignees after 2000 are Raytheon Company, and the United States of America as represented by the Secretary of the Navy, and Oshkosh Defense, LLC. 
+
+10. Observe the evolution of innovation
+```
+fa = pdt1.first_appear(data = F41, target = 'cpcInventiveFlattened', graph = True, figsize = (10, 6), color = 'tomato')
+```
+Each point on the line indicates the number of new categories that were introduced in a particular year. There is a particularly notable spike around 1925 where the number of patents jumps to its maximum on the chart, exceeding 40 patents in that year.
