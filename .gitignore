@@ -17,4 +17,4 @@ tempCodeRunnerFile.py
 
 .DS_Store
 
-data/imtermediate/
+data/imtermediate/*
