@@ -126,7 +126,7 @@ from keyword_analysis import Keyword_Analysis
 from patent_descriptive import Patent_Descriptive
 
 # import the dataset
-dataset = pd.read_csv('/Users/liusimin/Desktop/Gun Safety/papers/all_patents_abstract.csv')
+sample_abstract = pd.read_csv('./data/raw/sample_abstract.csv')
 
 # create an object
 KA = Keyword_Analysis(data=dataset, num_keywords = 10)
