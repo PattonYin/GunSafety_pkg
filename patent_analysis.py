@@ -232,7 +232,7 @@ class compute_patent_citation_span:
     
 class network_plot:
     def __init__(self):
-        self.edge_list = pd.read_csv("data/edge_list.csv")
+        self.edge_list = pd.read_csv("data/raw/edge_list.csv")
     
     def subset_edge_list(self, ids):
         """Subset the edge list with given ids.
@@ -258,7 +258,7 @@ class network_plot:
         return edge_list
         
     
-    def plot_network(self, ids, threshold=2, edge_color='grey', node_color=["darkslategray", "aliceblue"], node_alpha=0.5, line_alpha=0.5, node_size_scale=100, width=0.3, linewidths=0.5, outline_color='black', figsize=(10, 10), font_size=8, labels=False):
+    def plot_network(self, ids, threshold=1, edge_color='grey', node_color=["darkslategray", "aliceblue"], node_alpha=0.5, line_alpha=0.5, node_size_scale=100, width=0.3, linewidths=0.5, outline_color='black', figsize=(10, 10), font_size=8, labels=False):
         """Plot the network of the patents with given ids.
         
         Args:

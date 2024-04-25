@@ -91,7 +91,7 @@ def _subset_by_date(column_name, requirements, df=None):
     df["datePublished"] = df["datePublished"].astype(str)
     df["datePublished"] = pd.to_datetime(df["datePublished"].str[:10])
     df_subset = df[(df['datePublished'] >= start) & (df['datePublished'] <= end)]
-    return df_subset
+    return df_subset.reset_index()
 
 def _subset_with_list(column_name, requirements, df=None):
     """
@@ -113,7 +113,7 @@ def _subset_with_list(column_name, requirements, df=None):
     
     df_subset = df[df[column_name].apply(lambda x: any(item in str(x) for item in requirements))] 
     
-    return df_subset
+    return df_subset.reset_index()
 
 def subset_patents_by_cpc(cpc_codes):
     """
