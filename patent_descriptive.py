@@ -209,6 +209,7 @@ class Patent_Descriptive:
         output:
             pd.DataFrame: The first appearance of target column.
         '''
+        data[target] = data[target].astype(str)
         first_appear = data.groupby(target)['datePublished'].min().sort_values().reset_index()
         first_appear.columns = [target, 'FirstAppearance']
         first_appear['Year'] = first_appear['FirstAppearance'].dt.year
