@@ -27,8 +27,8 @@ class Patent_Descriptive:
         except KeyError:
             pass
         try: # convert datePublished, applicationFilingDate into datetime
-            self.data['datePublished'] = pd.to_datetime(self.data['datePublished'], errors = 'coerce', utc=True)
-            self.data['applicationFilingDate'] = pd.to_datetime(self.data['applicationFilingDate'], errors = 'coerce', utc= True)
+            self.data['datePublished'] = pd.to_datetime(self.data['datePublished'], errors = 'coerce')
+            self.data['applicationFilingDate'] = pd.to_datetime(self.data['applicationFilingDate'], errors = 'coerce')
         except KeyError:
             pass
         return self.data
@@ -191,7 +191,7 @@ class Patent_Descriptive:
             pd.DataFrame: The dataset with the dummy variable.
         '''
         if isinstance(cutoff, str):
-            cutoff = pd.to_datetime(cutoff, utc= True)
+            cutoff = pd.to_datetime(cutoff)
         else: 
             raise ValueError("The cutoff time should be a string.")
         data[dummy] = (data[column] < cutoff).astype(int)
@@ -209,6 +209,7 @@ class Patent_Descriptive:
         output:
             pd.DataFrame: The first appearance of target column.
         '''
+        data[target] = data[target].astype(str)
         first_appear = data.groupby(target)['datePublished'].min().sort_values().reset_index()
         first_appear.columns = [target, 'FirstAppearance']
         first_appear['Year'] = first_appear['FirstAppearance'].dt.year
