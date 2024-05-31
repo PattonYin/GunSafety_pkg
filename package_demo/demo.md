@@ -3,7 +3,7 @@
 This is a demostration of the `Keyword_Analysis` and `Patent_Descriptive` classes. `Keyword_Analysis` does keyword analysis for patents in the patent dataset, and `Patent_Descriptive` does descriptive analysis. 
 
 ## Keyword_Analysis
-`Keyword_Analysis` has 6 attributes and 3 functions for users to input and use:
+`Keyword_Analysis` has 6 attributes and 2 functions for users to input and use:
 ### Attributes: 
 - `data`: The data set to analyze. 
 - `catch_word`: A list of words that the users want to check frequency with. By default, catch_word is `["safe", "safer","safety", "safely", "secure", "security", "securely", "securer", "secured","secures"]`. 
@@ -28,24 +28,26 @@ This is a demostration of the `Keyword_Analysis` and `Patent_Descriptive` classe
     
     - pd.DataFrame. The dataframe with the separate columns of catch word frequencies, and a keyword column filled with a dictionary. The dictionary in the keyword column is the frequency of keywords. 
 
-- `get_keyword_frequency`: Get the frequency of keywords in the dataset.
-
-    - output: dict. A dictionary of keyword frequencies. 
-
 ## Patent_Descriptive
 Python version of the `patent` package from R.
 
-The object has 1 attribute and 6 methods. 
-### Attributes
-- data: The data set to analyze.
+### Functions
+- `reformat`: Reformat the dataset to correct data type. Should be run **before** any other functions. 
 
-### Methods
-- `reformat`: Reformat the dataset to correct datatype. Should be run **before** any other functions. 
+    input: 
+
+    - data (pd.DataFrame): data to clean
+
+    output: 
+
+    - pd.DataFrame: The cleaned dataset.
 
 - `clean_by`: Clean the dataset based on a column.
     This function cleans the dataset based on the columns about demographic data, including: inventorState, assigneeState, inventorName, assigneeName, inventorCity, and assigneeCity. If the column is inventorState or assigneeState, it will separate the column into multiple rows, clean the duplicates, and other countries.
         
     input:
+
+    - data (pd.DataFrame): data to clean
 
     - column (str): The name of the column to clean. It can be inventorState or assigneeState.
         
@@ -104,6 +106,18 @@ The object has 1 attribute and 6 methods.
     output:
     - pd.DataFrame: The dataset with the dummy variable.
 
+- `first_appear`: Generate a line plot of the first appearance of target column.
+
+    input:
+    - data (pd.DataFrame): The dataset to analyze.
+    - target (str): The name of the column to analyze.
+    - graph (bool): Whether to generate a bar plot. Default is True.
+    - figsize (tuple): The size of the plot. Default is (10, 6).
+    - color (str): The color of the bars in the plot. Default is 'lightgreen'.
+
+    output:
+    - pd.DataFrame: The first appearance of target column.
+
 ## Sample Use
 
 1. Import the dataset and create a `Keyword_Analysis` object. 
@@ -111,10 +125,10 @@ The object has 1 attribute and 6 methods.
 # import packages
 import pandas as pd
 from keyword_analysis import Keyword_Analysis
-from patent_descriptive import Patent_Descriptive
+from patent_descriptive import * 
 
 # import the dataset
-dataset = pd.read_csv('/Users/liusimin/Desktop/Gun Safety/papers/all_patents_abstract.csv')
+sample_abstract = pd.read_csv('./data/raw/sample_abstract.csv')
 
 # create an object
 KA = Keyword_Analysis(data=dataset, num_keywords = 10)
@@ -132,23 +146,22 @@ print(fck.head())
 4. Check the overall frequency of keywords 
 ```
 # import dataset
-pd_data = pd.read_csv('/Users/liusimin/Desktop/Gun Safety/papers/clean_data_4.csv')
+pd_data = pd.read_csv('/Users/liusimin/Desktop/Gun Safety/papers/all_patents3.csv')
 # merge the dataset
 data = pd.merge(keyword, pd_data, on='guid', how='left')
-# create a Patent_Descriptive object 
-pdt1 = Patent_Descriptive(data = data)
+
 # reformat the dataset
-pdt1.reformat()
+data = reformat(data)
 # check frequency
-kf = pdt1.frequency(data = pdt1.data, column = 'keywords', n = 30)
+kf = frequency(data = data, column = 'keyword', num = 30)
 ```
 From the frequency plot of `kf`, while keyword is the x axis, frequency is the y axis, the plot shows that `barrel`, `target`, and `trigger` are the top 3 words of gun components that have been mentioned most frequently for all F41 firearm related patents over time.   
 
 5. Check the keyword frequency by decades
 ```
-pdt1.data['year'] = pdt1.data['datePublished'].dt.year
-pdt1.data['decade'] = (pdt1.data['year'] // 10) * 10
-kfd = pdt1.freq_by_group(data = pdt1.data, group = 'decade', target = 'keyword', num = 20)
+data['year'] = data['datePublished'].dt.year
+data['decade'] = (data['year'] // 10) * 10
+kfd = freq_by_group(data = data, group = 'decade', target = 'keyword', num = 20)
 ```
 `kfd` is a list of frequency tables of keywords by decades. From 1830s to 1890s, the recurring appearance of terms like "barrel", "breech", "trigger", and "hammer" across multiple decades points to these as areas of significant advancement and focus within the field of firearms, reflecting the technological challenges and demands of the times. 
 
@@ -162,10 +175,10 @@ Over nearly two centuries, there's been a progression from basic mechanical comp
 
 6. Slice the dataset based on category
 ```
-pdt1.data = pdt1.separate_category(pdt1.data)
+data = separate_category(data)
 
 # subselect all F41 patents
-F41 = pdt1.data.loc[(pdt1.data['category'] == 'F') & (pdt1.data['subcategory1'] == '41')]
+F41 = data.loc[(data['category'] == 'F') & (data['subcategory1'] == '41')]
 
 # select F41A, F41C, F41G for firearms
 F41A = F41.loc[F41['subcategory2'] == 'A']
@@ -176,14 +189,14 @@ F41G = F41.loc[F41['subcategory2'] == 'G']
 7. Analyze subcategories
 ```
 # subcategory2 frequency for F41
-F41_npdt1.frequency(data = t, column = 'subcategory2', num = len(t['subcategory2'].unique()))
+F41_n = frequency(data = F41, column = 'subcategory2', num = len(F41['subcategory2'].unique()))
 
 # subcategory3 frequency for F41A, F41C, F41G
-F41A_n = pdt1.frequency(data = F41A, column = 'subcategory3', rotation =0, num = len(F41A['subcategory3'].unique()))
+F41A_n = frequency(data = F41A, column = 'subcategory3', rotation =0, num = len(F41A['subcategory3'].unique()))
 
-F41C_n = pdt1.frequency(data = F41C, column = 'subcategory3', rotation =0, num = len(F41C['subcategory3'].unique()))
+F41C_n = frequency(data = F41C, column = 'subcategory3', rotation =0, num = len(F41C['subcategory3'].unique()))
 
-F41G_n = pdt1.frequency(data = F41G, column = 'subcategory3', rotation =0, num = len(F41G['subcategory3'].unique()))
+F41G_n = frequency(data = F41G, column = 'subcategory3', rotation =0, num = len(F41G['subcategory3'].unique()))
 ```
 Reading F41_n, A, G, H are the most prolific category under F41. F41A covers operational characteristics and details that are shared between small arms and larger artillery, such as cannons, including their mountings. F41G is dedicated to the sighting systems of weapons and their aiming methodologies. F41H relates to protective gear like armor, armored turrets, and vehicles, as well as general offensive and defensive implements, including camouflage.
 
@@ -199,12 +212,12 @@ F41G01 involves devices used for aiming or aligning firearms to their targets. F
 8. Check prolific inventors and states
 ```
 # prolific states
-state_data = pdt1.clean_by(pdt1.data, 'inventorState')
-state_freq = pdt1.frequency(data = state_data, column = 'inventorState', num = 20)
+state_data = clean_by(data, 'inventorState')
+state_freq = frequency(data = state_data, column = 'inventorState', num = 20)
 
 # prolific inventors
-inventor_data = pdt1.clean_by(pdt1.data, 'inventorsName')
-inventor_freq = pdt1.frequency(data = inventor_data, column = 'inventorsName', num = 20)
+inventor_data = clean_by(data, 'inventorsName')
+inventor_freq = frequency(data = inventor_data, column = 'inventorsName', num = 20)
 ```
 CA, WI, and VA stand out as the states with the highest number of firearm patents.
 
@@ -212,10 +225,16 @@ Jesse Gander, Mathew A. McPherson, and Timothy W. Markison have been identified 
 
 9. Check assignees after 2000.01.01
 ```
-assignee_data = pdt1.clean_by(pdt1.data, 'assigneeName')
-assignee_data = pdt1.dummy_by_time(data = assignee_data, column = 'datePublished', cutoff = '2000-01-01', dummy = 'dummy')
+assignee_data = clean_by(data, 'assigneeName')
+assignee_data = dummy_by_time(data = assignee_data, column = 'datePublished', cutoff = '2000-01-01', dummy = 'dummy')
 assignee_2000s = assignee_data.loc[assignee_data['dummy'] == 0]
 
-assignee_2000s_freq = pdt1.frequency(column = 'assigneeName', data = assignee_2000s)
+assignee_2000s_freq = frequency(column = 'assigneeName', data = assignee_2000s)
 ```
 Top assignees after 2000 are Raytheon Company, and the United States of America as represented by the Secretary of the Navy, and Oshkosh Defense, LLC. 
+
+10. Observe the evolution of innovation
+```
+fa = first_appear(data = F41, target = 'cpcInventiveFlattened', graph = True, figsize = (10, 6), color = 'tomato')
+```
+Each point on the line indicates the number of new categories that were introduced in a particular year. There is a particularly notable spike around 1925 where the number of patents jumps to its maximum on the chart, exceeding 40 patents in that year.

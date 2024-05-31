@@ -11,7 +11,7 @@ punctuations = string.punctuation.replace('.', '').replace(',', '')
 translator = str.maketrans('', '', punctuations)
 
 class Keyword_Analysis:
-    def __init__(self, data, num_keywords=15, # stopwords=nltk.corpus.stopwords.words('english'), not to use stopwords
+    def __init__(self, data, num_keywords=15, 
                  catch_word=["safe", "safer","safety", "safely", "secure", "security", "securely", "securer", "secured","secures"], 
                  colname='descriptionHtml', identifier='guid'):
         self.keywords = {} # a dictionary of patent:keywords
@@ -77,8 +77,8 @@ class Keyword_Analysis:
         '''
         data = self.data.copy()
         length = len(self.data)
-        data['keyword'] = [{}] * length
-        for i in trange(length, desc="finding keywords"):
+        data['keyword'] = [[]] * length
+        for i in trange(length):
             try:
                 abstract = self.data[self.colname].iloc[i].translate(self.translator)
                 identifier = self.data[self.identifier].iloc[i]
@@ -90,39 +90,39 @@ class Keyword_Analysis:
                 data.at[i, 'keyword'] = pd.NA
         return data
     
-    def get_keyword_frequency(self):
-        ''' 
-        Get the frequency of keywords in the dataset
-        output: a dictionary of keyword frequencies
-        '''
-        key_freq = {}
-        length = len(self.data)
-        for i in range(length):
-            identifier = self.data[self.identifier].iloc[i]
-            keywords = self.keywords[identifier]
-            key_freq[identifier] = count_frequency(keywords, keywords)
-        return key_freq
+    # def get_keyword_frequency(self):
+    #     ''' 
+    #     Get the frequency of keywords in the dataset
+    #     output: a dictionary of keyword frequencies
+    #     '''
+    #     key_freq = {}
+    #     length = len(self.data)
+    #     for i in range(length):
+    #         identifier = self.data[self.identifier].iloc[i]
+    #         keywords = self.keywords[identifier]
+    #         key_freq[identifier] = count_frequency(keywords, keywords)
+    #     return key_freq
 
-    def keyword_freq(self, data):
-        '''
-        Get the frequency of keywords for all patents in the dataset
+    # def keyword_freq(self, data):
+    #     '''
+    #     Get the frequency of keywords for all patents in the dataset
         
-        input: data. The dataframe with the keywords column
-        output: df_word_counts. The dataframe with the word and frequency columns
-        '''
-        all_words = [word for sublist in data['keyword'] if sublist is not pd.NA for word in sublist]
-        # Use Counter to count frequencies
-        word_counts = Counter(all_words)
-        # Convert the Counter object to a DataFrame
-        df_word_counts = pd.DataFrame(word_counts.items(), columns=['Word', 'Frequency']).sort_values(by='Frequency', ascending=False).reset_index(drop=True)
-        return df_word_counts
+    #     input: data. The dataframe with the keywords column
+    #     output: df_word_counts. The dataframe with the word and frequency columns
+    #     '''
+    #     all_words = [word for sublist in data['keyword'] if sublist is not pd.NA for word in sublist]
+    #     # Use Counter to count frequencies
+    #     word_counts = Counter(all_words)
+    #     # Convert the Counter object to a DataFrame
+    #     df_word_counts = pd.DataFrame(word_counts.items(), columns=['Word', 'Frequency']).sort_values(by='Frequency', ascending=False).reset_index(drop=True)
+    #     return df_word_counts
 
 if __name__ == "__main__":
     # SA = Safeword_Analysis()
     dataset = pd.read_csv('/Users/liusimin/Desktop/Gun Safety/papers/all_patents_abstract.csv')
     # print(dataset.head())
-    # subset = data.iloc[10000:10010].reset_index(drop=True)
-    KA = Keyword_Analysis(data=dataset, num_keywords = 10)
+    subset = dataset.iloc[10000:10100].reset_index(drop=True)
+    KA = Keyword_Analysis(data=subset, num_keywords = 10)
     keyword = KA.get_keywords()
     print(keyword.head())
     # catch = KA.get_word_count(True, True)
