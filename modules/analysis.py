@@ -297,7 +297,7 @@ def plot_distribution_2(path_to_data="data", save=False, bins=50, kde=True, colo
 
 class network_plot:
     def __init__(self):
-        self.edge_list = pd.read_csv("data/edge_list.csv")
+        self.edge_list = pd.read_csv("../data/raw/edge_list.csv")
     
     def subset_edge_list(self, ids):
         """Subset the edge list with given ids.
