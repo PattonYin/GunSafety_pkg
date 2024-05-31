@@ -90,32 +90,32 @@ class Keyword_Analysis:
                 data.at[i, 'keyword'] = pd.NA
         return data
     
-    def get_keyword_frequency(self):
-        ''' 
-        Get the frequency of keywords in the dataset
-        output: a dictionary of keyword frequencies
-        '''
-        key_freq = {}
-        length = len(self.data)
-        for i in range(length):
-            identifier = self.data[self.identifier].iloc[i]
-            keywords = self.keywords[identifier]
-            key_freq[identifier] = count_frequency(keywords, keywords)
-        return key_freq
+    # def get_keyword_frequency(self):
+    #     ''' 
+    #     Get the frequency of keywords in the dataset
+    #     output: a dictionary of keyword frequencies
+    #     '''
+    #     key_freq = {}
+    #     length = len(self.data)
+    #     for i in range(length):
+    #         identifier = self.data[self.identifier].iloc[i]
+    #         keywords = self.keywords[identifier]
+    #         key_freq[identifier] = count_frequency(keywords, keywords)
+    #     return key_freq
 
-    def keyword_freq(self, data):
-        '''
-        Get the frequency of keywords for all patents in the dataset
+    # def keyword_freq(self, data):
+    #     '''
+    #     Get the frequency of keywords for all patents in the dataset
         
-        input: data. The dataframe with the keywords column
-        output: df_word_counts. The dataframe with the word and frequency columns
-        '''
-        all_words = [word for sublist in data['keyword'] if sublist is not pd.NA for word in sublist]
-        # Use Counter to count frequencies
-        word_counts = Counter(all_words)
-        # Convert the Counter object to a DataFrame
-        df_word_counts = pd.DataFrame(word_counts.items(), columns=['Word', 'Frequency']).sort_values(by='Frequency', ascending=False).reset_index(drop=True)
-        return df_word_counts
+    #     input: data. The dataframe with the keywords column
+    #     output: df_word_counts. The dataframe with the word and frequency columns
+    #     '''
+    #     all_words = [word for sublist in data['keyword'] if sublist is not pd.NA for word in sublist]
+    #     # Use Counter to count frequencies
+    #     word_counts = Counter(all_words)
+    #     # Convert the Counter object to a DataFrame
+    #     df_word_counts = pd.DataFrame(word_counts.items(), columns=['Word', 'Frequency']).sort_values(by='Frequency', ascending=False).reset_index(drop=True)
+    #     return df_word_counts
 
 if __name__ == "__main__":
     # SA = Safeword_Analysis()
